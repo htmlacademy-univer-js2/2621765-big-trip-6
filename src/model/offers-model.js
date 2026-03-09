@@ -1,11 +1,21 @@
-import { getRandomOffer } from '../mock/point.js';
-
-const OFFER_COUNT = 3;
+//import { getRandomOffer } from '../mock/offers';
+import { mockOffers } from '../mock/offers';
 
 export default class OffersModel {
-  offers = Array.from({ length: OFFER_COUNT }, getRandomOffer);
+  //offers = Array.from({ length: OFFER_COUNT }, getRandomOffer);
+  offers = mockOffers;
 
   getOffers() {
     return this.offers;
+  }
+
+  getOffersByType(type) {
+    const allOffers = this.getOffers();
+    return allOffers.find((item) => item.type === type);
+  }
+
+  getOffersById(type, itemsId){
+    const offersType = this.getOffersByType(type);
+    return offersType.offers.filter((item) => itemsId.find((id) => item.id === id));
   }
 }

@@ -17,7 +17,7 @@
     "dev": "webpack --mode development"
   },
   "dependencies": {
-    "dayjs": "^1.11.7",
+    "dayjs": "^1.11.19",
     "flatpickr": "^4.6.13",
     "he": "1.2.0"
   },

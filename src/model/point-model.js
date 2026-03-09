@@ -1,4 +1,4 @@
-import { getRandomPoint } from '../mock/point';
+import { getRandomPoint } from '../mock/points';
 
 const POINT_COUNT = 4;
 
