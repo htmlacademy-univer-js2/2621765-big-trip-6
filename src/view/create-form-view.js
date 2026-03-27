@@ -1,5 +1,5 @@
-import { createElement } from '../render.js';
 import { humanizePointDueDate } from '../util.js';
+import AbstractView from '../framework/view/abstract-view.js';
 
 function createNewFormTemplate(point = {}) {
   const {
@@ -144,25 +144,15 @@ function createNewFormTemplate(point = {}) {
   `;
 }
 
-export default class NewCreateFormView {
+export default class NewCreateFormView extends AbstractView{
+  #point = null;
   constructor({ point } = {}) {
-    this.point = point || {};
-    this.element = null;
+    super();
+    this.#point = point || {};
   }
 
-  getTemplate() {
-    return createNewFormTemplate(this.point);
+  get template() {
+    return createNewFormTemplate(this.#point);
   }
 
-  getElement() {
-    if (!this.element) {
-      const template = this.getTemplate();
-      this.element = createElement(template);
-    }
-    return this.element;
-  }
-
-  removeElement() {
-    this.element = null;
-  }
 }

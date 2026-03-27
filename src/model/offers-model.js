@@ -1,12 +1,10 @@
-//import { getRandomOffer } from '../mock/offers';
 import { mockOffers } from '../mock/offers';
 
 export default class OffersModel {
-  //offers = Array.from({ length: OFFER_COUNT }, getRandomOffer);
-  offers = mockOffers;
+  #offers = mockOffers;
 
   getOffers() {
-    return this.offers;
+    return this.#offers;
   }
 
   getOffersByType(type) {
