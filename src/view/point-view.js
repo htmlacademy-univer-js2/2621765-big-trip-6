@@ -1,9 +1,9 @@
-import { createElement } from '../render.js';
 import {
   humanizeDateOnly,
   humanizeTime,
   calculateDuration
 } from '../util.js';
+import AbstractView from '../framework/view/abstract-view.js';
 
 const createPointTemplate = (point, offers, destination) => {
   if (!point) {
@@ -38,6 +38,7 @@ const createPointTemplate = (point, offers, destination) => {
     : '';
 
   return `
+  <ul class="trip-events__list">
     <li class="trip-events__item">
       <div class="event">
         <time class="event__date" datetime="${dateFrom || ''}">${dateOnly}</time>
@@ -72,29 +73,36 @@ const createPointTemplate = (point, offers, destination) => {
         </button>
       </div>
     </li>
+  </ul>
   `;
 };
 
-export default class PointView {
-  constructor({ point, offers, destination }) {
-    this.point = point;
-    this.offers = offers || [];
-    this.destination = destination || {};
-    this.element = null;
+export default class PointView extends AbstractView{
+  #point = null;
+  #offers = null;
+  #destination = null;
+  #onOpenEditButtonClick = null;
+  constructor({ point, offers, destination,onOpenEditButtonClick }) {
+    super();
+    this.#point = point;
+    this.#offers = offers || [];
+    this.#destination = destination || {};
+    this.#onOpenEditButtonClick = onOpenEditButtonClick;
+    this.#setEventListeners();
   }
 
-  getTemplate() {
-    return createPointTemplate(this.point, this.offers, this.destination);
+  get template() {
+    return createPointTemplate(this.#point, this.#offers, this.#destination);
   }
 
-  getElement() {
-    if (!this.element) {
-      this.element = createElement(this.getTemplate());
-    }
-    return this.element;
+  #setEventListeners() {
+    this.element
+      .querySelector('.event__rollup-btn')
+      .addEventListener('click',this.#openEditButtonClickHandler);
   }
 
-  removeElement() {
-    this.element = null;
-  }
+  #openEditButtonClickHandler = (evt) => {
+    evt.preventDefault();
+    this.#onOpenEditButtonClick();
+  };
 }
