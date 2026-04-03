@@ -1,8 +1,8 @@
-//import NewCreateFormView from '../src/view/create-form-view.js';
 import NewEditFormView from '../src/view/edit-form-view.js';
 import PointView from '../src/view/point-view.js';
 import SortView from '../src/view/sort-view.js';
 import { render,replace } from '../src/framework/render.js';
+import EmptyListView from '../src/view/empty-list-view.js';
 
 export default class TripPresenter {
   #tripEventsContainer = null;
@@ -21,11 +21,12 @@ export default class TripPresenter {
 
     this.#tripEventsContainer.innerHTML = '';
 
+    if (points.length === 0) {
+      this.#renderEmptyList();
+      return;
+    }
 
-    points.forEach((point, /*index*/) => {
-      if (!point) {
-        return;
-      }
+    points.forEach((point) => {
 
       const destination = this.#destinationsModel.getDestinationsById(point.destination);
       const pointOffers = this.#offersModel.getOffersById(point.type, point.offers || []);
@@ -84,4 +85,10 @@ export default class TripPresenter {
   #renderBoard() {
     render(new SortView(), this.#tripEventsContainer);
   }
+
+  #renderEmptyList() {
+    const emptyListView = new EmptyListView();
+    render(emptyListView, this.#tripEventsContainer);
+  }
 }
+

@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
-
+import { FILTERS } from './const';
 dayjs.extend(duration);
 
 const DATE_FORMATS = {
@@ -58,11 +58,32 @@ const getRandomArrayElement = (items) => (
   items[Math.floor(Math.random() * items.length)]
 );
 
+
+const filter = {
+  everything: (points) => points,
+  future: (points) => points.filter((point) => new Date(point.dateFrom) > new Date()),
+  present: (points) => points.filter((point) => {
+    const now = new Date();
+    const dateFrom = new Date(point.dateFrom);
+    const dateTo = new Date(point.dateTo);
+    return dateFrom <= now && dateTo >= now;
+  }),
+  past: (points) => points.filter((point) => new Date(point.dateTo) < new Date()),
+};
+
+export function getFiltersState(points, currentFilter = 'everything') {
+  return FILTERS.map((filterDef) => ({
+    ...filterDef,
+    isChecked: filterDef.name === currentFilter,
+    isDisabled: filter[filterDef.name](points).length === 0,
+  }));
+}
 export {
   humanizePointDueDate,
   humanizeTime,
   humanizeDateOnly,
   calculateDuration,
   getRandomInteger,
-  getRandomArrayElement
+  getRandomArrayElement,
+  filter
 };
