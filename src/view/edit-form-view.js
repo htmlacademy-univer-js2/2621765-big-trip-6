@@ -216,6 +216,9 @@ export default class NewEditFormView extends AbstractView {
   #allDestinations = null;
   #onCloseEditButtonClick = null;
   #onSubmitButtonClick = null;
+
+  #onSubmitForm = null;
+
   constructor({ point, allOffers, pointDestination, allDestinations,onCloseEditButtonClick,onSubmitButtonClick }) {
     super();
     this.#point = point;
@@ -254,5 +257,10 @@ export default class NewEditFormView extends AbstractView {
   #submitEditButtonClickHandler = (evt) => {
     evt.preventDefault();
     this.#onSubmitButtonClick();
+  };
+
+  #saveClickHandler = (evt) => {
+    evt.preventDefault();
+    this.#onSubmitForm(this.#point);
   };
 }

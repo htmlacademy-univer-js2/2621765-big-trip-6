@@ -14,4 +14,9 @@ const FILTERS = [
   { name: FilterType.PAST, label: 'Past' },
 ];
 
-export{TIPE,FilterType,FILTERS};
+const MODE = {
+  DEFAULT: 'DEFAULT',
+  EDITING: 'EDITING',
+};
+
+export{TIPE,FilterType,FILTERS,MODE};
