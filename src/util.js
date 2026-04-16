@@ -78,6 +78,7 @@ export function getFiltersState(points, currentFilter = 'everything') {
     isDisabled: filter[filterDef.name](points).length === 0,
   }));
 }
+const updateItem = (items,update) => items.map((item) => item.id === update.id ? update : item);
 export {
   humanizePointDueDate,
   humanizeTime,
@@ -85,5 +86,6 @@ export {
   calculateDuration,
   getRandomInteger,
   getRandomArrayElement,
-  filter
+  filter,
+  updateItem
 };
