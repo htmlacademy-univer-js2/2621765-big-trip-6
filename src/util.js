@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
-import { FILTERS } from './const';
+import { FilterType } from './const';
 dayjs.extend(duration);
 
 const DATE_FORMATS = {
@@ -59,26 +59,47 @@ const getRandomArrayElement = (items) => (
 );
 
 
+const updateItem = (items,update) => items.map((item) => item.id === update.id ? update : item);
+
+const isPointFuture = (point) => dayjs().isBefore(point.dateFrom);
+const isPointPresent = (point) => dayjs().isAfter(point.dateFrom) && dayjs().isBefore(point.dateTo);
+const isPointPast = (point) => dayjs().isAfter(point.dateTo);
+
 const filter = {
-  everything: (points) => points,
-  future: (points) => points.filter((point) => new Date(point.dateFrom) > new Date()),
-  present: (points) => points.filter((point) => {
-    const now = new Date();
-    const dateFrom = new Date(point.dateFrom);
-    const dateTo = new Date(point.dateTo);
-    return dateFrom <= now && dateTo >= now;
-  }),
-  past: (points) => points.filter((point) => new Date(point.dateTo) < new Date()),
+  [FilterType.EVERYTHING]: (points) => [...points],
+  [FilterType.FUTURE]: (points) => points.filter((point) => isPointFuture(point)),
+  [FilterType.PRESENT]: (points) => points.filter((point) => isPointPresent(point)),
+  [FilterType.PAST]: (points) => points.filter((point) => isPointPast(point))
 };
 
-export function getFiltersState(points, currentFilter = 'everything') {
-  return FILTERS.map((filterDef) => ({
-    ...filterDef,
-    isChecked: filterDef.name === currentFilter,
-    isDisabled: filter[filterDef.name](points).length === 0,
-  }));
+function getWeightForNullDate(dateA, dateB) {
+  if (dateA === null && dateB === null) {
+    return 0;
+  }
+
+  if (dateA === null) {
+    return 1;
+  }
+
+  if (dateB === null) {
+    return -1;
+  }
+
+  return null;
 }
-const updateItem = (items,update) => items.map((item) => item.id === update.id ? update : item);
+
+function sortTaskUp(taskA, taskB) {
+  const weight = getWeightForNullDate(taskA.dueDate, taskB.dueDate);
+
+  return weight ?? dayjs(taskA.dueDate).diff(dayjs(taskB.dueDate));
+}
+
+function sortTaskDown(taskA, taskB) {
+  const weight = getWeightForNullDate(taskA.dueDate, taskB.dueDate);
+
+  return weight ?? dayjs(taskB.dueDate).diff(dayjs(taskA.dueDate));
+}
+
 export {
   humanizePointDueDate,
   humanizeTime,
@@ -87,5 +108,7 @@ export {
   getRandomInteger,
   getRandomArrayElement,
   filter,
-  updateItem
+  updateItem,
+  sortTaskUp,
+  sortTaskDown
 };

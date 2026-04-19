@@ -19,4 +19,20 @@ const MODE = {
   EDITING: 'EDITING',
 };
 
-export{TIPE,FilterType,FILTERS,MODE};
+const SortType = {
+  DAY: 'day',
+  EVENT: 'event',
+  TIME: 'time',
+  PRICE: 'price',
+  OFFER: 'offer',
+};
+
+const enabledSortType = {
+  [SortType.DAY]: true,
+  [SortType.EVENT]: false,
+  [SortType.TIME]: true,
+  [SortType.PRICE]: true,
+  [SortType.OFFER]: false,
+};
+
+export{TIPE,FilterType,FILTERS,MODE,SortType,enabledSortType};
