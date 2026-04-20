@@ -108,6 +108,7 @@ export default class TripPresenter {
     this.#sortPoints(sortType);
     this.#clearPointList();
     this.#renderPoints();
+    this.#sortComponent.updateSortType(sortType);
   };
 
   #renderBoard() {
@@ -117,7 +118,8 @@ export default class TripPresenter {
 
   #renderSort() {
     this.#sortComponent = new SortView({
-      onSortTypeChange: this.#handleSortTypeChange
+      onSortTypeChange: this.#handleSortTypeChange,
+      currentSortType: this.#currentSortType
     });
   }
 
