@@ -1,5 +1,5 @@
 import { humanizePointDueDate } from '../util.js';
-import AbstractView from '../framework/view/abstract-view.js';
+import AbstractStatefulView from '../framework/view/abstract-stateful-view.js';
 
 function createNewEditFormTemplate(point, allOffers, pointDestination, allDestinations) {
   const { type, basePrice, dateFrom, dateTo, offers: pointOffers = [] } = point;
@@ -209,35 +209,95 @@ function createNewEditFormTemplate(point, allOffers, pointDestination, allDestin
   `;
 }
 
-export default class NewEditFormView extends AbstractView {
-  #point = null;
+export default class NewEditFormView extends AbstractStatefulView {
   #allOffers = null;
   #pointDestination = null;
   #allDestinations = null;
   #onCloseEditButtonClick = null;
   #onSubmitButtonClick = null;
 
-  #onSubmitForm = null;
+  #handleFormSubmit = null;
+  #handleEditRollUp = null;
 
-  constructor({ point, allOffers, pointDestination, allDestinations,onCloseEditButtonClick,onSubmitButtonClick }) {
+  constructor({ point,typeOffers, allOffers, pointDestination, allDestinations,onCloseEditButtonClick,onSubmitButtonClick,onFormSubmit,onEditRollup}) {
     super();
-    this.#point = point;
+    this._setState(NewEditFormView.parsePointToState(point,pointDestination.id,typeOffers));
     this.#allOffers = allOffers;
     this.#pointDestination = pointDestination;
     this.#allDestinations = allDestinations;
     this.#onCloseEditButtonClick = onCloseEditButtonClick;
     this.#onSubmitButtonClick = onSubmitButtonClick;
-    this.#setEventListeners();
+    //this.#setEventListeners();
+    this.#handleFormSubmit = onFormSubmit;
+    this.#handleEditRollUp = onEditRollup;
+    this._restoreHandlers();
+    this.element.addEventListener('submit', this.#formSubmitHandler);
   }
 
   get template() {
     return createNewEditFormTemplate(
-      this.#point,
+      this._state,
       this.#allOffers,
       this.#pointDestination,
       this.#allDestinations
     );
   }
+
+  _restoreHandlers() {
+    this.element.addEventListener('submit', this.#formSubmitHandler);
+
+    this.element.querySelector('.event__rollup-btn')
+      .addEventListener('click', this.#editRollUpHandler);
+
+    this.element.querySelector('.event__type-group')
+      .addEventListener('change', this.#typeListChangeHandler);
+
+    this.element.querySelector('.event__input--destination')
+      .addEventListener('change', this.#destinationChangeHandler);
+
+    this.element.querySelector('.event__input--price')
+      .addEventListener('input', this.#priceChangeHandler);
+
+    /*this.#setDatepickerStart();
+    this.#setDatepickerEnd();*/
+  }
+
+  #formSubmitHandler = (evt) => {
+    evt.preventDefault();
+    this.#handleFormSubmit(NewEditFormView.parseStateToPoint(this._state));
+  };
+
+  #editRollUpHandler = (evt) => {
+    evt.preventDefault();
+    this.#handleEditRollUp(NewEditFormView.parseStateToPoint(this._state));
+  };
+
+  #typeListChangeHandler = (evt) => {
+    evt.preventDefault();
+    const targetType = evt.target.value;
+    const typeOffers = this.#allOffers.find((item) => item.type === targetType);
+    this.updateElement({
+      type: targetType,
+      typeOffers: typeOffers,
+    });
+  };
+
+  #destinationChangeHandler = (evt) => {
+    evt.preventDefault();
+    const targetDestination = evt.target.value;
+    const newDestination = this.#allDestinations.find((item) => item.name === targetDestination);
+    this.updateElement({
+      destination: newDestination.id,
+    });
+  };
+
+  #priceChangeHandler = (evt) => {
+    evt.preventDefault();
+    const newPrice = evt.target.value;
+    this._setState({
+      basePrice: newPrice
+    });
+  };
 
   #setEventListeners() {
     this.element
@@ -259,8 +319,18 @@ export default class NewEditFormView extends AbstractView {
     this.#onSubmitButtonClick();
   };
 
-  #saveClickHandler = (evt) => {
-    evt.preventDefault();
-    this.#onSubmitForm(this.#point);
-  };
+  static parsePointToState(point, pointDestination, typeOffers) {
+    return {
+      ...point,
+      destination: pointDestination,
+      typeOffers: typeOffers,
+    };
+  }
+
+  static parseStateToPoint(state) {
+    const point = {...state};
+
+    return point;
+  }
+
 }

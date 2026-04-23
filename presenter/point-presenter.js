@@ -31,7 +31,8 @@ export default class PointPresenter {
     this.#point = point;
     this.#destination = destination;
     this.#offers = offers;
-    this.#offersByType = this.#offersModel.getOffersByType(this.#point.type);
+    const currentTypeOffers = this.#offersModel.getOffersByType(this.#point.type);
+    const allOffers = this.#offersModel.getOffers();
 
     const prevPointComponent = this.#pointView;
     const prevEditComponent = this.#editForm;
@@ -46,11 +47,14 @@ export default class PointPresenter {
 
     this.#editForm = new NewEditFormView({
       point: this.#point,
-      allOffers: this.#offersByType,
+      typeOffers: currentTypeOffers,
+      allOffers: allOffers,
       pointDestination: this.#destination,
       allDestinations: this.#destinations,
       onCloseEditButtonClick: this.#onCloseEditButtonClick,
       onSubmitButtonClick: this.#onSubmitButtonClick,
+      onFormSubmit: this.#onSubmitButtonClick,
+      onEditRollup: this.#onCloseEditButtonClick,
     });
 
     if (!prevPointComponent || !prevEditComponent) {
