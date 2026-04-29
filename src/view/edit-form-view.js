@@ -1,5 +1,7 @@
 import { humanizePointDueDate } from '../util.js';
 import AbstractStatefulView from '../framework/view/abstract-stateful-view.js';
+import flatpickr from 'flatpickr';
+import 'flatpickr/dist/flatpickr.css';
 
 function createNewEditFormTemplate(point, currentTypeOffers, allDestinations, currentDestination) {
   const { type, basePrice, dateFrom, dateTo, offers: selectedOfferIds = [] } = point;
@@ -159,6 +161,9 @@ export default class NewEditFormView extends AbstractStatefulView {
   #allDestinations = null;
   #handleFormSubmit = null;
   #handleEditRollUp = null;
+  #datepickerStart = null;
+  #datepickerEnd = null;
+
 
   constructor({ point, typeOffers, allOffers, allDestinations, onFormSubmit, onEditRollup }) {
     super();
@@ -200,12 +205,54 @@ export default class NewEditFormView extends AbstractStatefulView {
       ?.addEventListener('input', this.#priceChangeHandler);
     this.element.querySelector('.event__available-offers')
       ?.addEventListener('change', this.#offersChangeHandler);
+    this.#setDatepickerStart();
+    this.#setDatepickerEnd();
   }
 
   #formSubmitHandler = (evt) => {
     evt.preventDefault();
     this.#handleFormSubmit(NewEditFormView.parseStateToPoint(this._state));
   };
+
+  #dateFromChangeHandler = ([userDate]) => {
+    this._setState({
+      dateFrom: userDate,
+    });
+  };
+
+  #dateToChangeHandler = ([userDate]) => {
+    this._setState({
+      dateTo: userDate,
+    });
+  };
+
+  #setDatepickerStart() {
+    this.#datepickerStart = flatpickr(
+      this.element.querySelector('#event-start-time-1'),
+      {
+        dateFormat: 'd/m/y H:i',
+        enableTime: true,
+        'time_24hr': true,
+        defaultDate: this._state.dateFrom,
+        onChange: this.#dateFromChangeHandler,
+        maxDate: this._state.dateTo,
+      }
+    );
+  }
+
+  #setDatepickerEnd() {
+    this.#datepickerEnd = flatpickr(
+      this.element.querySelector('#event-end-time-1'),
+      {
+        dateFormat: 'd/m/y H:i',
+        enableTime: true,
+        'time_24hr': true,
+        defaultDate: this._state.dateTo,
+        onChange: this.#dateToChangeHandler,
+        minDate: this._state.dateFrom,
+      }
+    );
+  }
 
   #editRollUpHandler = (evt) => {
     evt.preventDefault();
