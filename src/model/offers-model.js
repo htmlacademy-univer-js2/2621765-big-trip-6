@@ -1,6 +1,7 @@
 import { mockOffers } from '../mock/offers';
+import Observable from '../framework/observable.js';
 
-export default class OffersModel {
+export default class OffersModel extends Observable {
   #offers = mockOffers;
 
   getOffers() {
@@ -8,12 +9,14 @@ export default class OffersModel {
   }
 
   getOffersByType(type) {
-    const allOffers = this.getOffers();
-    return allOffers.find((item) => item.type === type);
+    return this.#offers.find((item) => item.type === type);
   }
 
-  getOffersById(type, itemsId){
+  getOffersById(type, itemsId) {
     const offersType = this.getOffersByType(type);
-    return offersType.offers.filter((item) => itemsId.find((id) => item.id === id));
+    if (!offersType){
+      return [];
+    }
+    return offersType.offers.filter((item) => itemsId.includes(item.id));
   }
 }

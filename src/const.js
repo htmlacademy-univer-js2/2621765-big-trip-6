@@ -7,6 +7,20 @@ const FilterType = {
   PAST: 'past',
 };
 
+
+const FilterName = {
+  [FilterType.EVERYTHING]: 'Everything',
+  [FilterType.FUTURE]: 'Future',
+  [FilterType.PRESENT]: 'Present',
+  [FilterType.PAST]: 'Past',
+};
+
+const UserAction = {
+  UPDATE_POINT: 'UPDATE_POINT',
+  ADD_POINT: 'ADD_POINT',
+  DELETE_POINT: 'DELETE_POINT',
+};
+
 const FILTERS = [
   { name: FilterType.EVERYTHING, label: 'Everything' },
   { name: FilterType.FUTURE, label: 'Future' },
@@ -35,4 +49,11 @@ const enabledSortType = {
   [SortType.OFFER]: false,
 };
 
-export{TIPE,FilterType,FILTERS,MODE,SortType,enabledSortType};
+
+const UpdateType = {
+  MINOR: 'minor',
+  MAJOR: 'major',
+  INIT: 'init',
+};
+
+export { TIPE, FilterType, FilterName, FILTERS, MODE, SortType, enabledSortType, UpdateType,UserAction };

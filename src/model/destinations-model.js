@@ -1,15 +1,14 @@
 import { mockDestinations } from '../mock/destinations';
+import Observable from '../framework/observable.js';
 
-
-export default class DestinationsModel {
+export default class DestinationsModel extends Observable {
   #destinations = mockDestinations;
 
   getDestinations() {
     return this.#destinations;
   }
 
-  getDestinationsById(id){
-    const allDestinations = this.getDestinations();
-    return allDestinations.find((item) => item.id === id);
+  getDestinationsById(id) {
+    return this.#destinations.find((item) => item.id === id);
   }
 }
