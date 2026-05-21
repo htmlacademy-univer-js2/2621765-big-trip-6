@@ -4,8 +4,10 @@ import { SortType } from '../const.js';
 function createSortTemplate(currentSortType) {
   const sorts = [
     { type: SortType.DAY, label: 'Day' },
+    { type: SortType.EVENT, label: 'Event' },
     { type: SortType.TIME, label: 'Time' },
     { type: SortType.PRICE, label: 'Price' },
+    { type: SortType.OFFERS, label: 'Offers' },
   ];
 
   const sortsHtml = sorts.map(({ type, label }) => {

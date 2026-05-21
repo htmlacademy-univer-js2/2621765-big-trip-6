@@ -7,9 +7,8 @@ import FilterPresenter from '../presenter/filter-presenter.js';
 import PointsApiService from './points-api-service.js';
 import DestinationsApiService from './destinations-api-service.js';
 import OffersApiService from './offers-api-service.js';
-import EmptyListView from './view/empty-list-view.js';
+
 const AUTHORIZATION = 'Basic hS3sfS55wcl2sa8j';
-import { render } from './framework/render.js';
 
 const END_POINT = 'https://24.objects.htmlacademy.pro/big-trip';
 
@@ -43,15 +42,19 @@ const filterPresenter = new FilterPresenter({
   pointsModel,
 });
 
+tripPresenter.setLoading(true);
 
 Promise.all([
   pointsModel.init(),
   destinationsModel.init(),
   offersModel.init(),
-]).then(() => {
-  filterPresenter.init();
-  tripPresenter.init();
-}).catch(() => {
-  const emptyListView = new EmptyListView({ message: 'Failed to load data. Please try again later.' });
-  render(emptyListView, tripEventsElement);
-});
+])
+  .then(() => {
+    tripPresenter.setLoading(false);
+    filterPresenter.init();
+    tripPresenter.init();
+  })
+  .catch(() => {
+    tripPresenter.setLoading(false);
+    tripPresenter.renderError();
+  });

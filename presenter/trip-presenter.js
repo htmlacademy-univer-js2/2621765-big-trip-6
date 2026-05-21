@@ -1,10 +1,10 @@
 import SortView from '../src/view/sort-view.js';
-import { render } from '../src/framework/render.js';
+import { render,remove } from '../src/framework/render.js';
 import EmptyListView from '../src/view/empty-list-view.js';
 import PointPresenter from './point-presenter.js';
 import { SortType, UpdateType, UserAction, FilterType } from '../src/const.js';
 import dayjs from 'dayjs';
-
+import LoadingView from '../src/view/loading-view.js';
 export default class TripPresenter {
   #tripEventsContainer = null;
   #pointsModel = null;
@@ -19,6 +19,8 @@ export default class TripPresenter {
   #sortedPoints = [];
 
   #isNewPointCreating = false;
+  #loadingComponent = null;
+  #isLoading = false;
 
   constructor({
     tripEventsContainer,
@@ -51,6 +53,18 @@ export default class TripPresenter {
   #handleFilterChange() {
     this.#currentSortType = SortType.DAY;
     this.#renderBoard();
+  }
+
+  #renderLoading() {
+    this.#loadingComponent = new LoadingView();
+    render(this.#loadingComponent, this.#tripEventsContainer);
+  }
+
+  #clearLoading() {
+    if (this.#loadingComponent) {
+      remove(this.#loadingComponent);
+      this.#loadingComponent = null;
+    }
   }
 
   #handleUserAction = (actionType, updateType, updatedPoint) => {
@@ -125,6 +139,11 @@ export default class TripPresenter {
   };
 
   #renderBoard() {
+    if (this.#isLoading) {
+      this.#renderLoading();
+      return;
+    }
+    this.#clearLoading();
     this.#clearPoints();
 
     const allPoints = this.#pointsModel.getPoints();
@@ -220,6 +239,11 @@ export default class TripPresenter {
       onSortTypeChange: this.#handleSortTypeChange,
       currentSortType: this.#currentSortType,
     });
+  }
+
+  setLoading(isLoading) {
+    this.#isLoading = isLoading;
+    this.#renderBoard();
   }
 }
 
