@@ -5,6 +5,7 @@ import PointPresenter from './point-presenter.js';
 import { SortType, UpdateType, UserAction, FilterType } from '../src/const.js';
 import dayjs from 'dayjs';
 import LoadingView from '../src/view/loading-view.js';
+
 export default class TripPresenter {
   #tripEventsContainer = null;
   #pointsModel = null;
@@ -38,6 +39,8 @@ export default class TripPresenter {
     this.#newPointButton = newPointButton;
 
     this.#pointsModel.addObserver(this.#handleModelEvent.bind(this));
+    this.#destinationsModel.addObserver(this.#handleModelEvent.bind(this));
+    this.#offersModel.addObserver(this.#handleModelEvent.bind(this));
     this.#filterModel.addObserver(this.#handleFilterChange.bind(this));
     this.#newPointButton.addEventListener('click', this.#onNewPointClick);
   }
@@ -47,6 +50,9 @@ export default class TripPresenter {
   }
 
   #handleModelEvent() {
+    if (this.#isLoading){
+      return;
+    }
     this.#renderBoard();
   }
 
@@ -56,6 +62,9 @@ export default class TripPresenter {
   }
 
   #renderLoading() {
+    if (this.#loadingComponent) {
+      remove(this.#loadingComponent);
+    }
     this.#loadingComponent = new LoadingView();
     render(this.#loadingComponent, this.#tripEventsContainer);
   }
@@ -125,7 +134,7 @@ export default class TripPresenter {
   }
 
   #onNewPointClick = () => {
-    if (this.#isNewPointCreating){
+    if (this.#isNewPointCreating) {
       return;
     }
 
@@ -139,16 +148,17 @@ export default class TripPresenter {
   };
 
   #renderBoard() {
+    this.#clearLoading();
+    this.#clearPoints();
+    this.#tripEventsContainer.innerHTML = '';
+
     if (this.#isLoading) {
       this.#renderLoading();
       return;
     }
-    this.#clearLoading();
-    this.#clearPoints();
 
     const allPoints = this.#pointsModel.getPoints();
     const filteredPoints = this.#filterModel.getFilteredPoints(allPoints);
-    this.#tripEventsContainer.innerHTML = '';
 
     if (filteredPoints.length === 0) {
       this.#renderEmptyList();
@@ -219,7 +229,7 @@ export default class TripPresenter {
   }
 
   #handleSortTypeChange = (sortType) => {
-    if (this.#currentSortType === sortType){
+    if (this.#currentSortType === sortType) {
       return;
     }
     this.#currentSortType = sortType;
