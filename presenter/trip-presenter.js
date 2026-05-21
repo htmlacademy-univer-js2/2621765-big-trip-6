@@ -83,8 +83,8 @@ export default class TripPresenter {
     return {
       id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
       basePrice: 0,
-      dateFrom: new Date().toISOString(),
-      dateTo: new Date().toISOString(),
+      dateFrom: null,
+      dateTo: null,
       destination: firstDestination?.id || '',
       isFavorite: false,
       offers: [],

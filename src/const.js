@@ -51,9 +51,10 @@ const enabledSortType = {
 
 
 const UpdateType = {
-  MINOR: 'minor',
-  MAJOR: 'major',
-  INIT: 'init',
+  PATCH: 'PATCH',
+  MINOR: 'MINOR',
+  MAJOR: 'MAJOR',
+  INIT: 'INIT',
 };
 
 export { TIPE, FilterType, FilterName, FILTERS, MODE, SortType, enabledSortType, UpdateType,UserAction };

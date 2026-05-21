@@ -223,6 +223,13 @@ export default class NewEditFormView extends AbstractStatefulView {
 
   #formSubmitHandler = (evt) => {
     evt.preventDefault();
+    const { dateFrom, dateTo } = this._state;
+    if (!dateFrom || !dateTo){
+      return;
+    }
+    if (new Date(dateFrom) > new Date(dateTo)){
+      return;
+    }
     this.#handleFormSubmit(NewEditFormView.parseStateToPoint(this._state));
   };
 
@@ -233,38 +240,59 @@ export default class NewEditFormView extends AbstractStatefulView {
 
   #dateFromChangeHandler = ([userDate]) => {
     this._setState({ dateFrom: userDate });
+    this.#updateDatepickersConstraints();
   };
 
   #dateToChangeHandler = ([userDate]) => {
     this._setState({ dateTo: userDate });
+    this.#updateDatepickersConstraints();
   };
 
+  #updateDatepickersConstraints() {
+    if (this.#datepickerStart) {
+      const maxDate = this._state.dateTo ? new Date(this._state.dateTo) : null;
+      this.#datepickerStart.set('maxDate', maxDate);
+    }
+    if (this.#datepickerEnd) {
+      const minDate = this._state.dateFrom ? new Date(this._state.dateFrom) : null;
+      this.#datepickerEnd.set('minDate', minDate);
+    }
+  }
+
   #setDatepickerStart() {
+    const defaultDate = this._state.dateFrom ? new Date(this._state.dateFrom) : undefined;
     this.#datepickerStart = flatpickr(
       this.element.querySelector('#event-start-time-1'),
       {
         dateFormat: 'd/m/y H:i',
         enableTime: true,
         'time_24hr': true,
-        defaultDate: this._state.dateFrom,
+        defaultDate: defaultDate,
         onChange: this.#dateFromChangeHandler,
-        maxDate: this._state.dateTo,
+        maxDate: this._state.dateTo ? new Date(this._state.dateTo) : null,
       }
     );
+    if (!this._state.dateFrom) {
+      this.#datepickerStart.clear();
+    }
   }
 
   #setDatepickerEnd() {
+    const defaultDate = this._state.dateTo ? new Date(this._state.dateTo) : undefined;
     this.#datepickerEnd = flatpickr(
       this.element.querySelector('#event-end-time-1'),
       {
         dateFormat: 'd/m/y H:i',
         enableTime: true,
         'time_24hr': true,
-        defaultDate: this._state.dateTo,
+        defaultDate: defaultDate,
         onChange: this.#dateToChangeHandler,
-        minDate: this._state.dateFrom,
+        minDate: this._state.dateFrom ? new Date(this._state.dateFrom) : null,
       }
     );
+    if (!this._state.dateTo) {
+      this.#datepickerEnd.clear();
+    }
   }
 
   #editRollUpHandler = (evt) => {

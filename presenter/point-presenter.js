@@ -55,7 +55,11 @@ export default class PointPresenter {
     });
 
     if (!prevPointComponent || !prevEditComponent) {
-      render(this.#pointView, this.#pointListContainer);
+      if (this.#isNew && this.#pointListContainer.firstChild) {
+        render(this.#pointView, this.#pointListContainer, 'afterbegin');
+      } else {
+        render(this.#pointView, this.#pointListContainer);
+      }
       return;
     }
 
