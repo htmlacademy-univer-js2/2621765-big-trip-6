@@ -1,9 +1,10 @@
 import SortView from '../src/view/sort-view.js';
-import { render } from '../src/framework/render.js';
+import { render,remove } from '../src/framework/render.js';
 import EmptyListView from '../src/view/empty-list-view.js';
 import PointPresenter from './point-presenter.js';
 import { SortType, UpdateType, UserAction, FilterType } from '../src/const.js';
 import dayjs from 'dayjs';
+import LoadingView from '../src/view/loading-view.js';
 
 export default class TripPresenter {
   #tripEventsContainer = null;
@@ -19,6 +20,8 @@ export default class TripPresenter {
   #sortedPoints = [];
 
   #isNewPointCreating = false;
+  #loadingComponent = null;
+  #isLoading = false;
 
   constructor({
     tripEventsContainer,
@@ -36,6 +39,8 @@ export default class TripPresenter {
     this.#newPointButton = newPointButton;
 
     this.#pointsModel.addObserver(this.#handleModelEvent.bind(this));
+    this.#destinationsModel.addObserver(this.#handleModelEvent.bind(this));
+    this.#offersModel.addObserver(this.#handleModelEvent.bind(this));
     this.#filterModel.addObserver(this.#handleFilterChange.bind(this));
     this.#newPointButton.addEventListener('click', this.#onNewPointClick);
   }
@@ -45,12 +50,30 @@ export default class TripPresenter {
   }
 
   #handleModelEvent() {
+    if (this.#isLoading){
+      return;
+    }
     this.#renderBoard();
   }
 
   #handleFilterChange() {
     this.#currentSortType = SortType.DAY;
     this.#renderBoard();
+  }
+
+  #renderLoading() {
+    if (this.#loadingComponent) {
+      remove(this.#loadingComponent);
+    }
+    this.#loadingComponent = new LoadingView();
+    render(this.#loadingComponent, this.#tripEventsContainer);
+  }
+
+  #clearLoading() {
+    if (this.#loadingComponent) {
+      remove(this.#loadingComponent);
+      this.#loadingComponent = null;
+    }
   }
 
   #handleUserAction = (actionType, updateType, updatedPoint) => {
@@ -83,8 +106,8 @@ export default class TripPresenter {
     return {
       id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
       basePrice: 0,
-      dateFrom: new Date().toISOString(),
-      dateTo: new Date().toISOString(),
+      dateFrom: null,
+      dateTo: null,
       destination: firstDestination?.id || '',
       isFavorite: false,
       offers: [],
@@ -111,7 +134,7 @@ export default class TripPresenter {
   }
 
   #onNewPointClick = () => {
-    if (this.#isNewPointCreating){
+    if (this.#isNewPointCreating) {
       return;
     }
 
@@ -125,11 +148,17 @@ export default class TripPresenter {
   };
 
   #renderBoard() {
+    this.#clearLoading();
     this.#clearPoints();
+    this.#tripEventsContainer.innerHTML = '';
+
+    if (this.#isLoading) {
+      this.#renderLoading();
+      return;
+    }
 
     const allPoints = this.#pointsModel.getPoints();
     const filteredPoints = this.#filterModel.getFilteredPoints(allPoints);
-    this.#tripEventsContainer.innerHTML = '';
 
     if (filteredPoints.length === 0) {
       this.#renderEmptyList();
@@ -200,7 +229,7 @@ export default class TripPresenter {
   }
 
   #handleSortTypeChange = (sortType) => {
-    if (this.#currentSortType === sortType){
+    if (this.#currentSortType === sortType) {
       return;
     }
     this.#currentSortType = sortType;
@@ -220,6 +249,11 @@ export default class TripPresenter {
       onSortTypeChange: this.#handleSortTypeChange,
       currentSortType: this.#currentSortType,
     });
+  }
+
+  setLoading(isLoading) {
+    this.#isLoading = isLoading;
+    this.#renderBoard();
   }
 }
 
