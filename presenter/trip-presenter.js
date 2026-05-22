@@ -5,6 +5,12 @@ import PointPresenter from './point-presenter.js';
 import { SortType, UpdateType, UserAction, FilterType } from '../src/const.js';
 import dayjs from 'dayjs';
 import LoadingView from '../src/view/loading-view.js';
+import UiBlocker from '../src/framework/ui-blocker/ui-blocker.js';
+
+const TimeLimit = {
+  LOWER_LIMIT: 350,
+  UPPER_LIMIT: 1000,
+};
 
 export default class TripPresenter {
   #tripEventsContainer = null;
@@ -22,6 +28,11 @@ export default class TripPresenter {
   #isNewPointCreating = false;
   #loadingComponent = null;
   #isLoading = false;
+  #uiBlocker = new UiBlocker({
+    lowerLimit: TimeLimit.LOWER_LIMIT,
+    upperLimit: TimeLimit.UPPER_LIMIT
+  });
+
 
   constructor({
     tripEventsContainer,
@@ -76,24 +87,46 @@ export default class TripPresenter {
     }
   }
 
-  #handleUserAction = (actionType, updateType, updatedPoint) => {
-    switch (actionType) {
-      case UserAction.UPDATE_POINT:
-        this.#pointsModel.updatePoint(updateType, updatedPoint);
-        break;
-      case UserAction.ADD_POINT:
-        this.#pointsModel.addPoint(updateType, updatedPoint);
-        this.#isNewPointCreating = false;
-        break;
-      case UserAction.DELETE_POINT:
-        if (this.#isNewPointCreating && this.#pointsPresenter.has(updatedPoint.id)) {
-          this.#pointsPresenter.delete(updatedPoint.id);
+  #handleUserAction = async (actionType, updateType, updatedPoint) => {
+    this.#uiBlocker.block();
+    let pointPresenter = null;
+
+    try {
+      switch (actionType) {
+        case UserAction.UPDATE_POINT:
+          pointPresenter = this.#pointsPresenter.get(updatedPoint.id);
+          pointPresenter?.setSaving();
+          await this.#pointsModel.updatePoint(updateType, updatedPoint);
+          // УБРАТЬ pointPresenter?.setAborting();
+          break;
+
+        case UserAction.ADD_POINT:
+          pointPresenter = this.#pointsPresenter.get(updatedPoint.id);
+          pointPresenter?.setSaving();
+          await this.#pointsModel.addPoint(updateType, updatedPoint);
           this.#isNewPointCreating = false;
-          this.#renderBoard();
-          return;
-        }
-        this.#pointsModel.deletePoint(updateType, updatedPoint);
-        break;
+          // УБРАТЬ pointPresenter?.setAborting();
+          break;
+
+        case UserAction.DELETE_POINT:
+          if (this.#isNewPointCreating && this.#pointsPresenter.has(updatedPoint.id)) {
+            this.#pointsPresenter.delete(updatedPoint.id);
+            this.#isNewPointCreating = false;
+            this.#renderBoard();
+            return;
+          }
+          pointPresenter = this.#pointsPresenter.get(updatedPoint.id);
+          pointPresenter?.setDeleting();
+          await this.#pointsModel.deletePoint(updateType, updatedPoint);
+          // УБРАТЬ pointPresenter?.setAborting();
+          break;
+      }
+    } catch (err) {
+      if (pointPresenter){
+        pointPresenter.setAborting();
+      }
+    } finally {
+      this.#uiBlocker.unblock();
     }
   };
 
