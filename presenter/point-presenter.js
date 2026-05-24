@@ -66,7 +66,8 @@ export default class PointPresenter {
     if (this.#mode === MODE.DEFAULT) {
       replace(this.#pointView, prevPointComponent);
     } else if (this.#mode === MODE.EDITING) {
-      replace(this.#editForm, prevEditComponent);
+      replace(this.#pointView, prevEditComponent);
+      this.#mode = MODE.DEFAULT;
     }
   }
 
@@ -120,13 +121,46 @@ export default class PointPresenter {
     this.#closeForm();
   };
 
+
+  setAborting() {
+    if (!this.#editForm){
+      return;
+    }
+    const resetFormState = () => {
+      if (this.#editForm) {
+        this.#editForm.updateElement({
+          isDisabled: false,
+          isSaving: false,
+          isDeleting: false,
+        });
+      }
+    };
+    this.#editForm.shake(resetFormState);
+  }
+
+
+  setSaving() {
+    if (this.#mode === MODE.EDITING) {
+      this.#editForm.updateElement({
+        isDisabled: true,
+        isSaving: true,
+      });
+    }
+  }
+
+  setDeleting() {
+    if (this.#mode === MODE.EDITING) {
+      this.#editForm.updateElement({
+        isDisabled: true,
+        isDeleting: true,
+      });
+    }
+  }
+
   #onSubmitButtonClick = (updatedPoint) => {
     const action = this.#isNew ? UserAction.ADD_POINT : UserAction.UPDATE_POINT;
     const updateType = (action === UserAction.UPDATE_POINT) ? 'minor' : 'major';
     this.#handleDataChange(action, updateType, updatedPoint);
-    if (!this.#isNew) {
-      this.#closeForm();
-    }
   };
 
   #onDeleteButtonClick = () => {

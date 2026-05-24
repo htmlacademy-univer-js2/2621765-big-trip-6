@@ -7,7 +7,7 @@ function createNewFormTemplate(point = {}) {
     name = '',
     dateFrom = new Date().toISOString(),
     dateTo = new Date().toISOString(),
-    basePrice = 0
+    basePrice = 0,
   } = point;
 
   const dateStart = humanizePointDueDate(dateFrom);

@@ -4,7 +4,7 @@ import AbstractStatefulView from '../framework/view/abstract-stateful-view.js';
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.css';
 
-function createNewEditFormTemplate(point, currentTypeOffers, allDestinations, currentDestination) {
+function createNewEditFormTemplate(point, currentTypeOffers, allDestinations, currentDestination, isDisabled,isSaving,isDeleting) {
   const { type, basePrice, dateFrom, dateTo, offers: selectedOfferIds = [] } = point;
   const { name, description, pictures } = currentDestination || {};
   const dateStart = humanizePointDueDate(dateFrom);
@@ -40,7 +40,8 @@ function createNewEditFormTemplate(point, currentTypeOffers, allDestinations, cu
                  type="checkbox"
                  name="event-offer-${offer.id}"
                  data-offer-id="${offer.id}"
-                 ${isChecked ? 'checked' : ''}>
+                 ${isChecked ? 'checked' : ''}
+                 ${isDisabled ? 'disabled' : ''}>
           <label class="event__offer-label" for="event-offer-${offer.id}-1">
             <span class="event__offer-title">${safeTitle}</span>
             &plus;&euro;&nbsp;
@@ -66,7 +67,8 @@ function createNewEditFormTemplate(point, currentTypeOffers, allDestinations, cu
                type="radio"
                name="event-type"
                value="${eventType}"
-               ${eventType === type ? 'checked' : ''}>
+               ${eventType === type ? 'checked' : ''}
+               ${isDisabled ? 'disabled' : ''}>
         <label class="event__type-label event__type-label--${eventType}"
                for="event-type-${eventType}-1">
           ${eventType}
@@ -138,8 +140,8 @@ function createNewEditFormTemplate(point, currentTypeOffers, allDestinations, cu
                  type="number" name="event-price" value="${safeBasePrice}" min="0">
         </div>
 
-        <button class="event__save-btn btn btn--blue" type="submit">Save</button>
-        <button class="event__reset-btn" type="reset">Delete</button>
+        <button class="event__save-btn btn btn--blue" type="submit" ${isDisabled ? 'disabled' : ''}>${isSaving ? 'saving...' : 'save'}</button>
+        <button class="event__reset-btn" type="reset" ${isDisabled ? 'disabled' : ''} >${isDeleting ? 'deleting...' : 'delete'}</button>
         <button class="event__rollup-btn" type="button">
           <span class="visually-hidden">Open event</span>
         </button>
@@ -193,7 +195,10 @@ export default class NewEditFormView extends AbstractStatefulView {
       this._state,
       this._state.typeOffers,
       this.#allDestinations,
-      currentDestination
+      currentDestination,
+      this._state.isDisabled,
+      this._state.isSaving,
+      this._state.isDeleting,
     );
   }
 
@@ -225,9 +230,11 @@ export default class NewEditFormView extends AbstractStatefulView {
     evt.preventDefault();
     const { dateFrom, dateTo } = this._state;
     if (!dateFrom || !dateTo){
+      this.shake();
       return;
     }
     if (new Date(dateFrom) > new Date(dateTo)){
+      this.shake();
       return;
     }
     this.#handleFormSubmit(NewEditFormView.parseStateToPoint(this._state));
@@ -295,6 +302,13 @@ export default class NewEditFormView extends AbstractStatefulView {
     }
   }
 
+  shake() {
+    this.element.style.animation = 'shake 0.5s ease-in-out';
+    setTimeout(() => {
+      this.element.style.animation = '';
+    }, 500);
+  }
+
   #editRollUpHandler = (evt) => {
     evt.preventDefault();
     this.#handleEditRollUp(NewEditFormView.parseStateToPoint(this._state));
@@ -321,7 +335,8 @@ export default class NewEditFormView extends AbstractStatefulView {
 
   #priceChangeHandler = (evt) => {
     evt.preventDefault();
-    this.updateElement({ basePrice: evt.target.value });
+    const value = parseInt(evt.target.value, 10);
+    this.updateElement({ basePrice: isNaN(value) ? 0 : value });
   };
 
   #offersChangeHandler = (evt) => {
@@ -344,13 +359,19 @@ export default class NewEditFormView extends AbstractStatefulView {
     return {
       ...point,
       typeOffers: typeOffers,
-      offers: point.offers || []
+      offers: point.offers || [],
+      isDisabled: false,
+      isSaving: false,
+      isDeleting: false,
     };
   }
 
   static parseStateToPoint(state) {
     const point = { ...state };
     delete point.typeOffers;
+    delete point.isDisabled;
+    delete point.isSaving;
+    delete point.isDeleting;
     return point;
   }
 }
