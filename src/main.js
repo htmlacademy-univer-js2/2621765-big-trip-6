@@ -56,4 +56,5 @@ Promise.all([
   })
   .catch(() => {
     tripPresenter.setLoading(false);
+    tripPresenter.renderError();
   });

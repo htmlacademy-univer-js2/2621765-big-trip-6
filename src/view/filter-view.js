@@ -35,6 +35,7 @@ function createFilterTemplate(filters) {
 export default class FilterView extends AbstractView {
   #filters = null;
   #handleFilterChange = null;
+  #boundInputChangeHandler = null;
 
   constructor(filters) {
     super();
@@ -47,12 +48,28 @@ export default class FilterView extends AbstractView {
 
   setFilterChangeHandler(callback) {
     this.#handleFilterChange = callback;
+    if (this.#boundInputChangeHandler) {
+      this.#removeInputHandlers();
+    }
+    this.#boundInputChangeHandler = this.#inputChangeHandler.bind(this);
     this.element.querySelectorAll('.trip-filters__filter-input').forEach((input) => {
-      input.addEventListener('change', (evt) => {
-        if (evt.target.checked) {
-          this.#handleFilterChange?.(evt.target.value);
-        }
-      });
+      input.addEventListener('change', this.#boundInputChangeHandler);
     });
+  }
+
+  #inputChangeHandler(evt) {
+    if (evt.target.checked) {
+      this.#handleFilterChange?.(evt.target.value);
+    }
+  }
+
+  #removeInputHandlers() {
+    if (!this.#boundInputChangeHandler){
+      return;
+    }
+    this.element.querySelectorAll('.trip-filters__filter-input').forEach((input) => {
+      input.removeEventListener('change', this.#boundInputChangeHandler);
+    });
+    this.#boundInputChangeHandler = null;
   }
 }

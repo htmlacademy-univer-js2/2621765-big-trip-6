@@ -1,7 +1,10 @@
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
-import { FilterType } from './const';
+import utc from 'dayjs/plugin/utc';
+import { FilterType } from './const.js';
+
 dayjs.extend(duration);
+dayjs.extend(utc);
 
 const DATE_FORMATS = {
   DISPLAY: 'DD/MM/YY HH:mm',
@@ -9,53 +12,65 @@ const DATE_FORMATS = {
   DATE_ONLY: 'DD/MM/YY'
 };
 
+const DEFAULT_DURATION = '0M';
+
 const humanizePointDueDate = (dueDate) => (
-  !dueDate ? '' : dayjs(dueDate).format(DATE_FORMATS.DISPLAY)
+  !dueDate ? '' : dayjs.utc(dueDate).format(DATE_FORMATS.DISPLAY)
 );
 
 const humanizeTime = (dueDate) => (
-  !dueDate ? '' : dayjs(dueDate).format(DATE_FORMATS.TIME_ONLY)
+  !dueDate ? '' : dayjs.utc(dueDate).format(DATE_FORMATS.TIME_ONLY)
 );
 
 const humanizeDateOnly = (dueDate) => {
-  if (!dueDate) {
+  if (!dueDate){
     return '';
   }
-  return dayjs(dueDate).format(DATE_FORMATS.DATE_ONLY);
+  return dayjs.utc(dueDate).format(DATE_FORMATS.DATE_ONLY);
 };
+
 const calculateDuration = (dateFrom, dateTo) => {
-  if (!dateFrom || !dateTo) {
-    return '0H 0M';
+  if (!dateFrom || !dateTo){
+    return DEFAULT_DURATION;
   }
 
-  const start = dayjs(dateFrom);
-  const end = dayjs(dateTo);
+  const start = dayjs.utc(dateFrom);
+  const end = dayjs.utc(dateTo);
 
-  if (!start.isValid() || !end.isValid()) {
-    return '0H 0M';
+  if (!start.isValid() || !end.isValid()){
+    return DEFAULT_DURATION;
   }
 
   const diffInMinutes = end.diff(start, 'minute');
-
-  if (diffInMinutes < 0) {
-    return '0H 0M';
+  if (diffInMinutes < 0){
+    return DEFAULT_DURATION;
   }
 
-  const hours = Math.floor(diffInMinutes / 60);
-  const minutes = diffInMinutes % 60;
+  const minutesInHour = 60;
+  const minutesInDay = 1440;
 
+  if (diffInMinutes < minutesInHour) {
+    return `${diffInMinutes}M`;
+  }
 
-  const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
+  const days = Math.floor(diffInMinutes / minutesInDay);
+  const remainingAfterDays = diffInMinutes % minutesInDay;
+  const hours = Math.floor(remainingAfterDays / minutesInHour);
+  const minutes = remainingAfterDays % minutesInHour;
 
-  return `${hours}H ${formattedMinutes}M`;
+  const formattedHours = String(hours).padStart(2, '0');
+  const formattedMinutes = String(minutes).padStart(2, '0');
+
+  if (days === 0) {
+    return `${formattedHours}H ${formattedMinutes}M`;
+  }
+
+  return `${days}D ${formattedHours}H ${formattedMinutes}M`;
 };
 
-
-const updateItem = (items,update) => items.map((item) => item.id === update.id ? update : item);
-
-const isPointFuture = (point) => dayjs().isBefore(point.dateFrom);
-const isPointPresent = (point) => dayjs().isAfter(point.dateFrom) && dayjs().isBefore(point.dateTo);
-const isPointPast = (point) => dayjs().isAfter(point.dateTo);
+const isPointFuture = (point) => dayjs.utc().isBefore(dayjs.utc(point.dateFrom));
+const isPointPresent = (point) => dayjs.utc().isAfter(dayjs.utc(point.dateFrom)) && dayjs.utc().isBefore(dayjs.utc(point.dateTo));
+const isPointPast = (point) => dayjs.utc().isAfter(dayjs.utc(point.dateTo));
 
 const filter = {
   [FilterType.EVERYTHING]: (points) => [...points],
@@ -64,41 +79,10 @@ const filter = {
   [FilterType.PAST]: (points) => points.filter((point) => isPointPast(point))
 };
 
-function getWeightForNullDate(dateA, dateB) {
-  if (dateA === null && dateB === null) {
-    return 0;
-  }
-
-  if (dateA === null) {
-    return 1;
-  }
-
-  if (dateB === null) {
-    return -1;
-  }
-
-  return null;
-}
-
-function sortTaskUp(taskA, taskB) {
-  const weight = getWeightForNullDate(taskA.dueDate, taskB.dueDate);
-
-  return weight ?? dayjs(taskA.dueDate).diff(dayjs(taskB.dueDate));
-}
-
-function sortTaskDown(taskA, taskB) {
-  const weight = getWeightForNullDate(taskA.dueDate, taskB.dueDate);
-
-  return weight ?? dayjs(taskB.dueDate).diff(dayjs(taskA.dueDate));
-}
-
 export {
   humanizePointDueDate,
   humanizeTime,
   humanizeDateOnly,
   calculateDuration,
-  filter,
-  updateItem,
-  sortTaskUp,
-  sortTaskDown
+  filter
 };

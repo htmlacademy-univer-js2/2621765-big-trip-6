@@ -1,6 +1,10 @@
 import { render, replace } from '../src/framework/render.js';
 import FilterView from '../src/view/filter-view.js';
 import { FilterType, FilterName, UpdateType } from '../src/const.js';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+
+dayjs.extend(utc);
 
 export default class FilterPresenter {
   #container = null;
@@ -32,14 +36,18 @@ export default class FilterPresenter {
     const points = this.#pointsModel.getPoints();
     const currentFilter = this.#filterModel.getFilter();
 
+    // Текущее время в UTC (соответствует часовому поясу данных сервера)
+    const now = dayjs.utc().valueOf();
+
     const counts = {
       [FilterType.EVERYTHING]: points.length,
-      [FilterType.FUTURE]: points.filter((p) => new Date(p.dateFrom) > new Date()).length,
+      [FilterType.FUTURE]: points.filter((p) => dayjs.utc(p.dateFrom).valueOf() > now).length,
       [FilterType.PRESENT]: points.filter((p) => {
-        const now = new Date();
-        return new Date(p.dateFrom) <= now && new Date(p.dateTo) >= now;
+        const from = dayjs.utc(p.dateFrom).valueOf();
+        const to = dayjs.utc(p.dateTo).valueOf();
+        return from <= now && to >= now;
       }).length,
-      [FilterType.PAST]: points.filter((p) => new Date(p.dateTo) < new Date()).length,
+      [FilterType.PAST]: points.filter((p) => dayjs.utc(p.dateTo).valueOf() < now).length,
     };
 
     return Object.values(FilterType).map((type) => ({

@@ -7,11 +7,14 @@ import dayjs from 'dayjs';
 import LoadingView from '../src/view/loading-view.js';
 import UiBlocker from '../src/framework/ui-blocker/ui-blocker.js';
 import TripInfoView from '../src/view/trip-info-view.js';
+import ErrorView from '../src/view/error-view.js';
 
-const TimeLimit = {
+const TIME_LIMIT = {
   LOWER_LIMIT: 350,
   UPPER_LIMIT: 1000,
 };
+
+const DEFAULT_POINT_TYPE = 'flight';
 
 export default class TripPresenter {
   #tripEventsContainer = null;
@@ -26,13 +29,14 @@ export default class TripPresenter {
   #pointsPresenter = new Map();
   #currentSortType = SortType.DAY;
   #sortedPoints = [];
+  #errorComponent = null;
 
   #isNewPointCreating = false;
   #loadingComponent = null;
   #isLoading = false;
   #uiBlocker = new UiBlocker({
-    lowerLimit: TimeLimit.LOWER_LIMIT,
-    upperLimit: TimeLimit.UPPER_LIMIT
+    lowerLimit: TIME_LIMIT.LOWER_LIMIT,
+    upperLimit: TIME_LIMIT.UPPER_LIMIT
   });
 
 
@@ -55,9 +59,8 @@ export default class TripPresenter {
     this.#destinationsModel.addObserver(this.#handleModelEvent.bind(this));
     this.#offersModel.addObserver(this.#handleModelEvent.bind(this));
     this.#filterModel.addObserver(this.#handleFilterChange.bind(this));
-    this.#newPointButton.addEventListener('click', this.#onNewPointClick);
+    this.#newPointButton.addEventListener('click', this.#handleNewPointClick);
     this.#tripMainElement = document.querySelector('.trip-main');
-
   }
 
   init() {
@@ -80,7 +83,7 @@ export default class TripPresenter {
   }
 
   #handleModelEvent() {
-    if (this.#isLoading){
+    if (this.#isLoading) {
       return;
     }
     this.#renderBoard();
@@ -123,7 +126,6 @@ export default class TripPresenter {
           pointPresenter = this.#pointsPresenter.get(updatedPoint.id);
           pointPresenter?.setSaving();
           await this.#pointsModel.addPoint(updateType, updatedPoint);
-          this.#isNewPointCreating = false;
           break;
 
         case UserAction.DELETE_POINT:
@@ -139,10 +141,11 @@ export default class TripPresenter {
           break;
       }
     } catch (err) {
-      if (pointPresenter){
+      if (pointPresenter) {
         pointPresenter.setAborting();
       }
     } finally {
+      this.#isNewPointCreating = false;
       this.#uiBlocker.unblock();
     }
   };
@@ -161,7 +164,7 @@ export default class TripPresenter {
       destination: firstDestination?.id || '',
       isFavorite: false,
       offers: [],
-      type: 'flight',
+      type: DEFAULT_POINT_TYPE,
     };
   }
 
@@ -177,13 +180,17 @@ export default class TripPresenter {
       onPointChange: this.#handleDataChange,
       onModeChange: this.#handleModeChange,
       isNew: true,
+      onCancelCreate: (canceledPoint) => {
+        this.#pointsPresenter.delete(canceledPoint.id);
+        this.#isNewPointCreating = false;
+      }
     });
     newPointPresenter.init(point, destination, offers);
     this.#pointsPresenter.set(point.id, newPointPresenter);
     newPointPresenter.openEditForm();
   }
 
-  #onNewPointClick = () => {
+  #handleNewPointClick = () => {
     if (this.#isNewPointCreating) {
       return;
     }
@@ -193,11 +200,17 @@ export default class TripPresenter {
     this.#filterModel.setFilter(UpdateType.MAJOR, FilterType.EVERYTHING);
     this.#currentSortType = SortType.DAY;
 
+    this.#renderBoard();
+
     const newPoint = this.#getEmptyPoint();
     this.#createPointForAdd(newPoint);
   };
 
   #renderBoard() {
+    if (this.#errorComponent) {
+      remove(this.#errorComponent);
+      this.#errorComponent = null;
+    }
     this.#clearLoading();
     this.#clearPoints();
     this.#tripEventsContainer.innerHTML = '';
@@ -278,7 +291,6 @@ export default class TripPresenter {
     this.#pointsPresenter.clear();
   }
 
-
   #handleSortTypeChange = (sortType) => {
     if (this.#currentSortType === sortType) {
       return;
@@ -305,6 +317,16 @@ export default class TripPresenter {
   setLoading(isLoading) {
     this.#isLoading = isLoading;
     this.#renderBoard();
+  }
+
+  renderError() {
+    this.#clearBoard();
+    this.#errorComponent = new ErrorView();
+    render(this.#errorComponent, this.#tripEventsContainer);
+  }
+
+  #clearBoard() {
+    this.#tripEventsContainer.innerHTML = '';
   }
 }
 

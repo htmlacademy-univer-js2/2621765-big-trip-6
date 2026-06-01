@@ -5,10 +5,9 @@ export default class PointsModel extends Observable {
   #pointsApiService = null;
   #points = [];
 
-  constructor({pointsApiService}) {
+  constructor({ pointsApiService }) {
     super();
     this.#pointsApiService = pointsApiService;
-
   }
 
   getPoints() {
@@ -18,9 +17,9 @@ export default class PointsModel extends Observable {
   async init() {
     try {
       const points = await this.#pointsApiService.points;
-      this.#points = points.map(this.#adaptToClient);
+      this.#points = points.map((point) => this.#adaptToClient(point));
       this._notify(UpdateType.INIT);
-    } catch(err) {
+    } catch (err) {
       this.#points = [];
       this._notify(UpdateType.INIT);
     }
@@ -46,22 +45,20 @@ export default class PointsModel extends Observable {
     this._notify(updateType, adaptedUpdatedPoint);
   }
 
-
   async addPoint(updateType, point) {
     try {
       const response = await this.#pointsApiService.addPoint(point);
       const newPoint = this.#adaptToClient(response);
       this.#points = [newPoint, ...this.#points];
       this._notify(updateType, newPoint);
-    } catch(err) {
+    } catch (err) {
       throw new Error('Can\'t add point');
     }
   }
 
-
   async deletePoint(updateType, point) {
     const index = this.#points.findIndex((p) => p.id === point.id);
-    if (index === -1){
+    if (index === -1) {
       throw new Error('Can\'t delete unexisting point');
     }
     try {
@@ -71,13 +68,14 @@ export default class PointsModel extends Observable {
         ...this.#points.slice(index + 1),
       ];
       this._notify(updateType);
-    } catch(err) {
+    } catch (err) {
       throw new Error('Can\'t delete point');
     }
   }
 
   #adaptToClient(point) {
-    const adaptedPoint = {...point,
+    const adaptedPoint = {
+      ...point,
       basePrice: point['base_price'],
       dateFrom: point['date_from'] !== null ? new Date(point['date_from']) : point['date_from'],
       dateTo: point['date_to'] !== null ? new Date(point['date_to']) : point['date_to'],

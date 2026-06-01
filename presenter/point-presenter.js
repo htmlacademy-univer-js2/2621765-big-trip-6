@@ -1,7 +1,7 @@
 import { render, replace, remove } from '../src/framework/render.js';
 import NewEditFormView from '../src/view/edit-form-view.js';
 import PointView from '../src/view/point-view.js';
-import { MODE, UserAction } from '../src/const.js';
+import { Mode, UserAction, UpdateType } from '../src/const.js';
 
 export default class PointPresenter {
   #pointListContainer = null;
@@ -14,24 +14,24 @@ export default class PointPresenter {
   #offers = null;
   #handleDataChange = null;
   #handleModeChange = null;
-  #mode = MODE.DEFAULT;
+  #mode = Mode.DEFAULT;
   #isNew = false;
+  #onCancelCreate = null;
 
-  constructor({ pointListContainer, destinationsModel, offersModel, onPointChange, onModeChange, isNew = false }) {
+  constructor({ pointListContainer, destinationsModel, offersModel, onPointChange, onModeChange, isNew = false, onCancelCreate }) {
     this.#pointListContainer = pointListContainer;
     this.#destinationsModel = destinationsModel;
     this.#offersModel = offersModel;
     this.#handleDataChange = onPointChange;
     this.#handleModeChange = onModeChange;
     this.#isNew = isNew;
+    this.#onCancelCreate = onCancelCreate;
   }
 
   init(point, destination, offers) {
     this.#point = point;
     this.#destination = destination;
     this.#offers = offers;
-    const currentTypeOffers = this.#offersModel.getOffersByType(this.#point.type);
-    const allOffers = this.#offersModel.getOffers();
 
     const prevPointComponent = this.#pointView;
     const prevEditComponent = this.#editForm;
@@ -40,90 +40,113 @@ export default class PointPresenter {
       point: this.#point,
       offers: this.#offers,
       destination: this.#destination,
-      onOpenEditButtonClick: this.#onOpenEditButtonClick,
+      onOpenEditButtonClick: this.#openEditButtonClickHandler,
       onFavoriteClick: this.#favoriteClickHandler,
     });
 
-    this.#editForm = new NewEditFormView({
-      point: this.#point,
-      typeOffers: currentTypeOffers,
-      allOffers: allOffers,
-      allDestinations: this.#destinationsModel.getDestinations(),
-      onFormSubmit: this.#onSubmitButtonClick,
-      onEditRollup: this.#onCloseEditButtonClick,
-      onDeleteClick: this.#onDeleteButtonClick,
-    });
-
-    if (!prevPointComponent || !prevEditComponent) {
-      if (this.#isNew && this.#pointListContainer.firstChild) {
-        render(this.#pointView, this.#pointListContainer, 'afterbegin');
-      } else {
-        render(this.#pointView, this.#pointListContainer);
-      }
+    if (this.#isNew) {
+      this.#openEditFormDirectly();
       return;
     }
 
-    if (this.#mode === MODE.DEFAULT) {
-      replace(this.#pointView, prevPointComponent);
-    } else if (this.#mode === MODE.EDITING) {
-      replace(this.#pointView, prevEditComponent);
-      this.#mode = MODE.DEFAULT;
+    if (!prevPointComponent || !prevEditComponent) {
+      render(this.#pointView, this.#pointListContainer);
+      return;
     }
+
+    if (this.#mode === Mode.DEFAULT) {
+      replace(this.#pointView, prevPointComponent);
+    } else if (this.#mode === Mode.EDITING) {
+      replace(this.#pointView, prevEditComponent);
+      this.#mode = Mode.DEFAULT;
+    }
+  }
+
+  #createEditForm() {
+    return new NewEditFormView({
+      point: { ...this.#point, isNew: this.#isNew },
+      typeOffers: this.#offersModel.getOffersByType(this.#point.type),
+      allOffers: this.#offersModel.getOffers(),
+      allDestinations: this.#destinationsModel.getDestinations(),
+      onFormSubmit: this.#submitButtonClickHandler,
+      onEditRollup: this.#closeEditButtonClickHandler,
+      onDeleteClick: this.#deleteButtonClickHandler,
+    });
+  }
+
+  #openEditFormDirectly() {
+    this.#editForm = this.#createEditForm();
+    render(this.#editForm, this.#pointListContainer, 'afterbegin');
+    this.#mode = Mode.EDITING;
+    this.#handleModeChange();
+    document.addEventListener('keydown', this.#escKeyDownHandler);
   }
 
   destroy() {
     remove(this.#pointView);
-    remove(this.#editForm);
+    if (this.#editForm) {
+      remove(this.#editForm);
+    }
     this.#pointView = null;
     this.#editForm = null;
+    document.removeEventListener('keydown', this.#escKeyDownHandler);
   }
 
   resetView() {
-    if (this.#mode !== MODE.DEFAULT) {
+    if (this.#mode !== Mode.DEFAULT && this.#editForm) {
       this.#editForm.reset(this.#point);
       this.#closeForm();
     }
   }
 
   openEditForm() {
-    if (this.#mode === MODE.DEFAULT) {
+    if (this.#mode === Mode.DEFAULT) {
       this.#replacePointToEditPoint();
     }
   }
 
   #closeForm() {
-    if (this.#mode !== MODE.DEFAULT) {
-      if (this.#editForm?.element){
-        remove(this.#editForm);
+    if (this.#mode !== Mode.DEFAULT) {
+      if (this.#isNew) {
+        document.removeEventListener('keydown', this.#escKeyDownHandler);
+        if (this.#onCancelCreate) {
+          this.#onCancelCreate(this.#point);
+        }
+        this.destroy();
+        return;
       }
-      if (this.#pointView?.element && !this.#pointView.element.parentElement) {
+
+      if (this.#editForm) {
+        remove(this.#editForm);
+        this.#editForm = null;
+      }
+
+      if (this.#pointView && !this.#pointView.isRendered()) {
         render(this.#pointView, this.#pointListContainer);
       }
+
       document.removeEventListener('keydown', this.#escKeyDownHandler);
-      this.#mode = MODE.DEFAULT;
+      this.#mode = Mode.DEFAULT;
     }
   }
 
   #escKeyDownHandler = (evt) => {
     if (evt.key === 'Escape') {
       evt.preventDefault();
-      this.#editForm.reset(this.#point);
       this.#closeForm();
     }
   };
 
-  #onOpenEditButtonClick = () => {
+  #openEditButtonClickHandler = () => {
     this.#replacePointToEditPoint();
-    document.addEventListener('keydown', this.#escKeyDownHandler);
   };
 
-  #onCloseEditButtonClick = () => {
+  #closeEditButtonClickHandler = () => {
     this.#closeForm();
   };
 
-
   setAborting() {
-    if (!this.#editForm){
+    if (!this.#editForm) {
       return;
     }
     const resetFormState = () => {
@@ -138,9 +161,8 @@ export default class PointPresenter {
     this.#editForm.shake(resetFormState);
   }
 
-
   setSaving() {
-    if (this.#mode === MODE.EDITING) {
+    if (this.#mode === Mode.EDITING && this.#editForm) {
       this.#editForm.updateElement({
         isDisabled: true,
         isSaving: true,
@@ -149,7 +171,7 @@ export default class PointPresenter {
   }
 
   setDeleting() {
-    if (this.#mode === MODE.EDITING) {
+    if (this.#mode === Mode.EDITING && this.#editForm) {
       this.#editForm.updateElement({
         isDisabled: true,
         isDeleting: true,
@@ -157,25 +179,28 @@ export default class PointPresenter {
     }
   }
 
-  #onSubmitButtonClick = (updatedPoint) => {
+  #submitButtonClickHandler = (updatedPoint) => {
     const action = this.#isNew ? UserAction.ADD_POINT : UserAction.UPDATE_POINT;
-    const updateType = (action === UserAction.UPDATE_POINT) ? 'minor' : 'major';
+    const updateType = action === UserAction.UPDATE_POINT ? UpdateType.MINOR : UpdateType.MAJOR;
     this.#handleDataChange(action, updateType, updatedPoint);
   };
 
-  #onDeleteButtonClick = () => {
-    this.#handleDataChange(UserAction.DELETE_POINT, 'major', this.#point);
-    document.removeEventListener('keydown', this.#escKeyDownHandler);
+  #deleteButtonClickHandler = () => {
+    this.#handleDataChange(UserAction.DELETE_POINT, UpdateType.MAJOR, this.#point);
+    if (!this.#isNew) {
+      document.removeEventListener('keydown', this.#escKeyDownHandler);
+    }
   };
 
   #replacePointToEditPoint() {
+    this.#editForm = this.#createEditForm();
     replace(this.#editForm, this.#pointView);
     this.#handleModeChange();
-    this.#mode = MODE.EDITING;
+    this.#mode = Mode.EDITING;
+    document.addEventListener('keydown', this.#escKeyDownHandler);
   }
 
   #favoriteClickHandler = () => {
-    this.#handleDataChange(UserAction.UPDATE_POINT, 'minor', { ...this.#point, isFavorite: !this.#point.isFavorite });
+    this.#handleDataChange(UserAction.UPDATE_POINT, UpdateType.MINOR, { ...this.#point, isFavorite: !this.#point.isFavorite });
   };
 }
-

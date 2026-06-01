@@ -1,5 +1,16 @@
 import Observable from '../framework/observable.js';
-import { FilterType } from '../const.js';
+import { FilterType, UpdateType } from '../const.js';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+
+dayjs.extend(utc);
+
+const EMPTY_MESSAGES = {
+  [FilterType.FUTURE]: 'There are no future events now',
+  [FilterType.PRESENT]: 'There are no present events now',
+  [FilterType.PAST]: 'There are no past events now',
+  [FilterType.EVERYTHING]: 'Click New Event to create your first point',
+};
 
 export default class FilterModel extends Observable {
   #currentFilter = FilterType.EVERYTHING;
@@ -9,7 +20,8 @@ export default class FilterModel extends Observable {
   }
 
   setFilter(updateType, filter) {
-    if (this.#currentFilter === filter){
+    const isMajor = updateType === UpdateType.MAJOR;
+    if (this.#currentFilter === filter && !isMajor) {
       return;
     }
     this.#currentFilter = filter;
@@ -17,33 +29,24 @@ export default class FilterModel extends Observable {
   }
 
   getFilteredPoints(points) {
-    const now = new Date();
+    const now = dayjs.utc().valueOf();
     switch (this.#currentFilter) {
       case FilterType.FUTURE:
-        return points.filter((point) => new Date(point.dateFrom) > now);
+        return points.filter((point) => dayjs.utc(point.dateFrom).valueOf() > now);
       case FilterType.PRESENT:
         return points.filter((point) => {
-          const from = new Date(point.dateFrom);
-          const to = new Date(point.dateTo);
+          const from = dayjs.utc(point.dateFrom).valueOf();
+          const to = dayjs.utc(point.dateTo).valueOf();
           return from <= now && to >= now;
         });
       case FilterType.PAST:
-        return points.filter((point) => new Date(point.dateTo) < now);
+        return points.filter((point) => dayjs.utc(point.dateTo).valueOf() < now);
       default:
         return [...points];
     }
   }
 
   getEmptyMessage() {
-    switch (this.#currentFilter) {
-      case FilterType.FUTURE:
-        return 'There are no future events now';
-      case FilterType.PRESENT:
-        return 'There are no present events now';
-      case FilterType.PAST:
-        return 'There are no past events now';
-      default:
-        return 'Click New Event to create your first point';
-    }
+    return EMPTY_MESSAGES[this.#currentFilter];
   }
 }

@@ -2,25 +2,48 @@ import AbstractView from '../framework/view/abstract-view.js';
 import { SortType } from '../const.js';
 
 function createSortTemplate(currentSortType) {
-  const sorts = [
-    { type: SortType.DAY, label: 'Day' },
-    { type: SortType.EVENT, label: 'Event' },
-    { type: SortType.TIME, label: 'Time' },
-    { type: SortType.PRICE, label: 'Price' },
-    { type: SortType.OFFERS, label: 'Offers' },
-  ];
+  const dayHtml = `
+    <div class="trip-sort__item trip-sort__item--day">
+      <input id="sort-day" class="trip-sort__input visually-hidden" type="radio" name="trip-sort" value="day" ${currentSortType === SortType.DAY ? 'checked' : ''}>
+      <label class="trip-sort__btn" for="sort-day">Day</label>
+    </div>
+  `;
 
-  const sortsHtml = sorts.map(({ type, label }) => {
-    const checked = currentSortType === type ? 'checked' : '';
-    return `
-      <div class="trip-sort__item  trip-sort__item--${type}">
-        <input id="sort-${type}" class="trip-sort__input  visually-hidden" type="radio" name="trip-sort" value="${type}" ${checked}>
-        <label class="trip-sort__btn" for="sort-${type}">${label}</label>
-      </div>
-    `;
-  }).join('');
+  const eventHtml = `
+    <div class="trip-sort__item trip-sort__item--event">
+      <span class="trip-sort__btn">Event</span>
+    </div>
+  `;
 
-  return `<form class="trip-events__trip-sort  trip-sort" action="#" method="get">${sortsHtml}</form>`;
+  const timeHtml = `
+    <div class="trip-sort__item trip-sort__item--time">
+      <input id="sort-time" class="trip-sort__input visually-hidden" type="radio" name="trip-sort" value="time" ${currentSortType === SortType.TIME ? 'checked' : ''}>
+      <label class="trip-sort__btn" for="sort-time">Time</label>
+    </div>
+  `;
+
+  const priceHtml = `
+    <div class="trip-sort__item trip-sort__item--price">
+      <input id="sort-price" class="trip-sort__input visually-hidden" type="radio" name="trip-sort" value="price" ${currentSortType === SortType.PRICE ? 'checked' : ''}>
+      <label class="trip-sort__btn" for="sort-price">Price</label>
+    </div>
+  `;
+
+  const offersHtml = `
+    <div class="trip-sort__item trip-sort__item--offers">
+      <span class="trip-sort__btn">Offers</span>
+    </div>
+  `;
+
+  return `
+    <form class="trip-events__trip-sort trip-sort" action="#" method="get">
+      ${dayHtml}
+      ${eventHtml}
+      ${timeHtml}
+      ${priceHtml}
+      ${offersHtml}
+    </form>
+  `;
 }
 
 export default class SortView extends AbstractView {
