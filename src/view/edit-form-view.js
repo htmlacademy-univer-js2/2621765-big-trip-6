@@ -92,7 +92,6 @@ function createNewEditFormTemplate(point, currentTypeOffers, allDestinations, cu
     `;
   };
 
-  // Генерация <select> с опциями направлений
   const destinationsOptions = allDestinations.map((dest) => `
     <option value="${he.encode(dest.id)}" ${dest.id === (currentDestination?.id || '') ? 'selected' : ''}>
       ${he.encode(dest.name)}

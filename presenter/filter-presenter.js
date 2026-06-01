@@ -36,7 +36,6 @@ export default class FilterPresenter {
     const points = this.#pointsModel.getPoints();
     const currentFilter = this.#filterModel.getFilter();
 
-    // Текущее время в UTC (соответствует часовому поясу данных сервера)
     const now = dayjs.utc().valueOf();
 
     const counts = {
