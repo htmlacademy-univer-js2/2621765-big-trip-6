@@ -1,5 +1,3 @@
-const TIPE = ['Taxi', 'Bus', 'Train', 'Ship', 'Drive', 'Flight', 'Check-in', 'Sightseeing', 'Restaurant'];
-
 const FilterType = {
   EVERYTHING: 'everything',
   FUTURE: 'future',
@@ -28,7 +26,7 @@ const FILTERS = [
   { name: FilterType.PAST, label: 'Past' },
 ];
 
-const MODE = {
+const Mode = {
   DEFAULT: 'DEFAULT',
   EDITING: 'EDITING',
 };
@@ -41,7 +39,7 @@ const SortType = {
   OFFER: 'offer',
 };
 
-const enabledSortType = {
+const SORT_TYPE_ENABLED = {
   [SortType.DAY]: true,
   [SortType.EVENT]: false,
   [SortType.TIME]: true,
@@ -57,4 +55,14 @@ const UpdateType = {
   INIT: 'INIT',
 };
 
-export { TIPE, FilterType, FilterName, FILTERS, MODE, SortType, enabledSortType, UpdateType,UserAction };
+export {
+  FilterType,
+  FilterName,
+  FILTERS,
+  Mode,
+  SortType,
+  SORT_TYPE_ENABLED,
+  UpdateType,
+  UserAction,
+};
+

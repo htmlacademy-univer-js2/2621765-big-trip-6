@@ -4,35 +4,42 @@ import AbstractStatefulView from '../framework/view/abstract-stateful-view.js';
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.css';
 
-function createNewEditFormTemplate(point, currentTypeOffers, allDestinations, currentDestination, isDisabled,isSaving,isDeleting) {
-  const { type, basePrice, dateFrom, dateTo, offers: selectedOfferIds = [] } = point;
-  const { name, description, pictures } = currentDestination || {};
-  const dateStart = humanizePointDueDate(dateFrom);
-  const dateEnd = humanizePointDueDate(dateTo);
+const ICON_MAP = {
+  taxi: 'img/icons/taxi.png',
+  bus: 'img/icons/bus.png',
+  train: 'img/icons/train.png',
+  flight: 'img/icons/flight.png',
+  'check-in': 'img/icons/check-in.png',
+  sightseeing: 'img/icons/sightseeing.png',
+  ship: 'img/icons/ship.png',
+  drive: 'img/icons/drive.png',
+  restaurant: 'img/icons/restaurant.png',
+};
 
-  const getIconByType = (iconType) => {
-    const icons = {
-      'taxi': 'img/icons/taxi.png',
-      'bus': 'img/icons/bus.png',
-      'train': 'img/icons/train.png',
-      'flight': 'img/icons/flight.png',
-      'check-in': 'img/icons/check-in.png',
-      'sightseeing': 'img/icons/sightseeing.png',
-      'ship': 'img/icons/ship.png',
-      'drive': 'img/icons/drive.png',
-      'restaurant': 'img/icons/restaurant.png'
-    };
-    return icons[iconType] || 'img/icons/transport.png';
-  };
+const DEFAULT_ICON = 'img/icons/transport.png';
+
+const EVENT_TYPES = [
+  'taxi', 'bus', 'train', 'flight', 'check-in',
+  'sightseeing', 'ship', 'drive', 'restaurant'
+];
+
+function getIconByType(type) {
+  return ICON_MAP[type] || DEFAULT_ICON;
+}
+
+function createNewEditFormTemplate(point, currentTypeOffers, allDestinations, currentDestination, isDisabled, isSaving, isDeleting, isNew) {
+  const { type, basePrice, dateFrom, dateTo, offers: selectedOfferIds = [] } = point;
+  const { description, pictures } = currentDestination || {};
+  const dateStart = dateFrom ? humanizePointDueDate(dateFrom) : '';
+  const dateEnd = dateTo ? humanizePointDueDate(dateTo) : '';
+  const resetButtonText = isNew ? 'cancel' : 'delete';
 
   const generateOffers = () => {
-    if (!currentTypeOffers?.offers?.length) {
+    if (!currentTypeOffers?.offers?.length){
       return '';
     }
     return currentTypeOffers.offers.map((offer) => {
       const isChecked = selectedOfferIds.includes(offer.id);
-      const safeTitle = he.encode(offer.title);
-      const safePrice = he.encode(String(offer.price));
       return `
         <div class="event__offer-selector">
           <input class="event__offer-checkbox visually-hidden"
@@ -43,42 +50,33 @@ function createNewEditFormTemplate(point, currentTypeOffers, allDestinations, cu
                  ${isChecked ? 'checked' : ''}
                  ${isDisabled ? 'disabled' : ''}>
           <label class="event__offer-label" for="event-offer-${offer.id}-1">
-            <span class="event__offer-title">${safeTitle}</span>
+            <span class="event__offer-title">${he.encode(offer.title)}</span>
             &plus;&euro;&nbsp;
-            <span class="event__offer-price">${safePrice}</span>
+            <span class="event__offer-price">${he.encode(String(offer.price))}</span>
           </label>
         </div>
       `;
     }).join('');
   };
 
-  const generateDestinationsList = () =>
-    allDestinations.map((dest) => `<option value="${he.encode(dest.name)}"></option>`).join('');
-
-  const generateEventTypes = () => {
-    const eventTypes = [
-      'taxi', 'bus', 'train', 'flight', 'check-in',
-      'sightseeing', 'ship', 'drive', 'restaurant'
-    ];
-    return eventTypes.map((eventType) => `
-      <div class="event__type-item">
-        <input id="event-type-${eventType}-1"
-               class="event__type-input visually-hidden"
-               type="radio"
-               name="event-type"
-               value="${eventType}"
-               ${eventType === type ? 'checked' : ''}
-               ${isDisabled ? 'disabled' : ''}>
-        <label class="event__type-label event__type-label--${eventType}"
-               for="event-type-${eventType}-1">
-          ${eventType}
-        </label>
-      </div>
-    `).join('');
-  };
+  const generateEventTypes = () => EVENT_TYPES.map((eventType) => `
+    <div class="event__type-item">
+      <input id="event-type-${eventType}-1"
+             class="event__type-input visually-hidden"
+             type="radio"
+             name="event-type"
+             value="${eventType}"
+             ${eventType === type ? 'checked' : ''}
+             ${isDisabled ? 'disabled' : ''}>
+      <label class="event__type-label event__type-label--${eventType}"
+             for="event-type-${eventType}-1">
+        ${eventType}
+      </label>
+    </div>
+  `).join('');
 
   const generatePhotos = () => {
-    if (!pictures || !pictures.length) {
+    if (!pictures?.length){
       return '';
     }
     return `
@@ -94,9 +92,11 @@ function createNewEditFormTemplate(point, currentTypeOffers, allDestinations, cu
     `;
   };
 
-  const safeName = he.encode(name || '');
-  const safeDescription = description ? he.encode(description) : '';
-  const safeBasePrice = he.encode(String(basePrice));
+  const destinationsOptions = allDestinations.map((dest) => `
+    <option value="${he.encode(dest.id)}" ${dest.id === (currentDestination?.id || '') ? 'selected' : ''}>
+      ${he.encode(dest.name)}
+    </option>
+  `).join('');
 
   return `
     <form class="event event--edit" action="#" method="post">
@@ -118,10 +118,10 @@ function createNewEditFormTemplate(point, currentTypeOffers, allDestinations, cu
 
         <div class="event__field-group event__field-group--destination">
           <label class="event__label event__type-output" for="event-destination-1">${he.encode(type)}</label>
-          <input class="event__input event__input--destination" id="event-destination-1"
-                 type="text" name="event-destination" value="${safeName}"
-                 list="destination-list-1" placeholder="Select destination">
-          <datalist id="destination-list-1">${generateDestinationsList()}</datalist>
+          <select class="event__input event__input--destination" id="event-destination-1" name="event-destination"
+                  ${isDisabled ? 'disabled' : ''}>
+            ${destinationsOptions}
+          </select>
         </div>
 
         <div class="event__field-group event__field-group--time">
@@ -137,11 +137,11 @@ function createNewEditFormTemplate(point, currentTypeOffers, allDestinations, cu
         <div class="event__field-group event__field-group--price">
           <label class="event__label" for="event-price-1"><span class="visually-hidden">Price</span>&euro;</label>
           <input class="event__input event__input--price" id="event-price-1"
-                 type="number" name="event-price" value="${safeBasePrice}" min="0">
+                 type="number" name="event-price" value="${basePrice}" min="0">
         </div>
 
         <button class="event__save-btn btn btn--blue" type="submit" ${isDisabled ? 'disabled' : ''}>${isSaving ? 'saving...' : 'save'}</button>
-        <button class="event__reset-btn" type="reset" ${isDisabled ? 'disabled' : ''} >${isDeleting ? 'deleting...' : 'delete'}</button>
+        <button class="event__reset-btn" type="reset" ${isDisabled ? 'disabled' : ''}>${isDeleting ? 'deleting...' : resetButtonText}</button>
         <button class="event__rollup-btn" type="button">
           <span class="visually-hidden">Open event</span>
         </button>
@@ -155,10 +155,10 @@ function createNewEditFormTemplate(point, currentTypeOffers, allDestinations, cu
           </section>
         ` : ''}
 
-        ${description || pictures ? `
+        ${description || pictures?.length ? `
           <section class="event__section event__section--destination">
             <h3 class="event__section-title event__section-title--destination">Destination</h3>
-            <p class="event__destination-description">${safeDescription}</p>
+            <p class="event__destination-description">${he.encode(description || '')}</p>
             ${generatePhotos()}
           </section>
         ` : ''}
@@ -187,6 +187,10 @@ export default class NewEditFormView extends AbstractStatefulView {
     this._restoreHandlers();
   }
 
+  _afterUpdateElement() {
+    this._restoreHandlers();
+  }
+
   get template() {
     const currentDestination = this.#allDestinations.find(
       (dest) => dest.id === this._state.destination
@@ -199,6 +203,7 @@ export default class NewEditFormView extends AbstractStatefulView {
       this._state.isDisabled,
       this._state.isSaving,
       this._state.isDeleting,
+      this._state.isNew,
     );
   }
 
@@ -217,26 +222,45 @@ export default class NewEditFormView extends AbstractStatefulView {
     this.element.querySelector('.event__type-group')
       ?.addEventListener('change', this.#typeListChangeHandler);
     this.element.querySelector('.event__input--destination')
-      ?.addEventListener('input', this.#destinationChangeHandler);
+      ?.addEventListener('change', this.#destinationChangeHandler);
     this.element.querySelector('.event__input--price')
       ?.addEventListener('input', this.#priceChangeHandler);
     this.element.querySelector('.event__available-offers')
       ?.addEventListener('change', this.#offersChangeHandler);
+
+    if (this.#datepickerStart) {
+      this.#datepickerStart.destroy();
+      this.#datepickerStart = null;
+    }
+    if (this.#datepickerEnd) {
+      this.#datepickerEnd.destroy();
+      this.#datepickerEnd = null;
+    }
     this.#setDatepickerStart();
     this.#setDatepickerEnd();
   }
 
   #formSubmitHandler = (evt) => {
     evt.preventDefault();
-    const { dateFrom, dateTo } = this._state;
-    if (!dateFrom || !dateTo){
+    const { dateFrom, dateTo, destination } = this._state;
+
+    if (!dateFrom || !dateTo) {
       this.shake();
       return;
     }
-    if (new Date(dateFrom) > new Date(dateTo)){
+    const fromDate = new Date(dateFrom);
+    const toDate = new Date(dateTo);
+    if (isNaN(fromDate) || isNaN(toDate) || fromDate > toDate) {
       this.shake();
       return;
     }
+
+    const destinationExists = this.#allDestinations.some((dest) => dest.id === destination);
+    if (!destinationExists) {
+      this.shake();
+      return;
+    }
+
     this.#handleFormSubmit(NewEditFormView.parseStateToPoint(this._state));
   };
 
@@ -246,12 +270,28 @@ export default class NewEditFormView extends AbstractStatefulView {
   };
 
   #dateFromChangeHandler = ([userDate]) => {
-    this._setState({ dateFrom: userDate });
+    if (userDate && !isNaN(userDate)) {
+      this._setState({ dateFrom: userDate.toISOString() });
+    } else {
+      this._setState({ dateFrom: null });
+      const input = this.element.querySelector('#event-start-time-1');
+      if (input){
+        input.value = '';
+      }
+    }
     this.#updateDatepickersConstraints();
   };
 
   #dateToChangeHandler = ([userDate]) => {
-    this._setState({ dateTo: userDate });
+    if (userDate && !isNaN(userDate)) {
+      this._setState({ dateTo: userDate.toISOString() });
+    } else {
+      this._setState({ dateTo: null });
+      const input = this.element.querySelector('#event-end-time-1');
+      if (input){
+        input.value = '';
+      }
+    }
     this.#updateDatepickersConstraints();
   };
 
@@ -267,38 +307,44 @@ export default class NewEditFormView extends AbstractStatefulView {
   }
 
   #setDatepickerStart() {
+    const startInput = this.element.querySelector('#event-start-time-1');
+    if (!startInput){
+      return;
+    }
+
     const defaultDate = this._state.dateFrom ? new Date(this._state.dateFrom) : undefined;
-    this.#datepickerStart = flatpickr(
-      this.element.querySelector('#event-start-time-1'),
-      {
-        dateFormat: 'd/m/y H:i',
-        enableTime: true,
-        'time_24hr': true,
-        defaultDate: defaultDate,
-        onChange: this.#dateFromChangeHandler,
-        maxDate: this._state.dateTo ? new Date(this._state.dateTo) : null,
-      }
-    );
+    this.#datepickerStart = flatpickr(startInput, {
+      dateFormat: 'd/m/y H:i',
+      enableTime: true,
+      'time_24hr': true,
+      defaultDate: defaultDate,
+      onChange: this.#dateFromChangeHandler,
+      maxDate: this._state.dateTo ? new Date(this._state.dateTo) : null,
+    });
     if (!this._state.dateFrom) {
       this.#datepickerStart.clear();
+      startInput.value = '';
     }
   }
 
   #setDatepickerEnd() {
+    const endInput = this.element.querySelector('#event-end-time-1');
+    if (!endInput){
+      return;
+    }
+
     const defaultDate = this._state.dateTo ? new Date(this._state.dateTo) : undefined;
-    this.#datepickerEnd = flatpickr(
-      this.element.querySelector('#event-end-time-1'),
-      {
-        dateFormat: 'd/m/y H:i',
-        enableTime: true,
-        'time_24hr': true,
-        defaultDate: defaultDate,
-        onChange: this.#dateToChangeHandler,
-        minDate: this._state.dateFrom ? new Date(this._state.dateFrom) : null,
-      }
-    );
+    this.#datepickerEnd = flatpickr(endInput, {
+      dateFormat: 'd/m/y H:i',
+      enableTime: true,
+      'time_24hr': true,
+      defaultDate: defaultDate,
+      onChange: this.#dateToChangeHandler,
+      minDate: this._state.dateFrom ? new Date(this._state.dateFrom) : null,
+    });
     if (!this._state.dateTo) {
       this.#datepickerEnd.clear();
+      endInput.value = '';
     }
   }
 
@@ -321,22 +367,20 @@ export default class NewEditFormView extends AbstractStatefulView {
     this.updateElement({
       type: targetType,
       typeOffers: typeOffers,
-      offers: []
+      offers: [],
     });
   };
 
   #destinationChangeHandler = (evt) => {
-    const targetName = evt.target.value;
-    const newDestination = this.#allDestinations.find((item) => item.name === targetName);
-    if (newDestination) {
-      this.updateElement({ destination: newDestination.id });
+    const newDestinationId = evt.target.value;
+    if (newDestinationId && this.#allDestinations.some((dest) => dest.id === newDestinationId)) {
+      this.updateElement({ destination: newDestinationId });
     }
   };
 
   #priceChangeHandler = (evt) => {
     evt.preventDefault();
-    const value = parseInt(evt.target.value, 10);
-    this.updateElement({ basePrice: isNaN(value) ? 0 : value });
+    this._setState({ basePrice: evt.target.value });
   };
 
   #offersChangeHandler = (evt) => {
@@ -363,6 +407,7 @@ export default class NewEditFormView extends AbstractStatefulView {
       isDisabled: false,
       isSaving: false,
       isDeleting: false,
+      isNew: point.isNew || false,
     };
   }
 
@@ -372,6 +417,7 @@ export default class NewEditFormView extends AbstractStatefulView {
     delete point.isDisabled;
     delete point.isSaving;
     delete point.isDeleting;
+    delete point.isNew;
     return point;
   }
 }

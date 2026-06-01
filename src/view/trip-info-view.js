@@ -1,5 +1,5 @@
+import he from 'he';
 import AbstractView from '../framework/view/abstract-view.js';
-
 
 function buildRoute(points, destinations) {
   if (!points.length){
@@ -23,9 +23,11 @@ function buildRoute(points, destinations) {
   if (cities.length === 2){
     return `${cities[0]} — ${cities[1]}`;
   }
+  if (cities.length === 3){
+    return `${cities[0]} — ${cities[1]} — ${cities[2]}`;
+  }
   return `${cities[0]} — ... — ${cities[cities.length - 1]}`;
 }
-
 
 function buildDates(points) {
   if (!points.length){
@@ -50,7 +52,6 @@ function buildDates(points) {
 
 function calculateTotalPrice(points, offersModel) {
   return points.reduce((total, point) => {
-    // Преобразуем basePrice в число (если строка или null/undefined)
     const basePrice = Number(point.basePrice) || 0;
     let offersTotal = 0;
 
@@ -63,26 +64,27 @@ function calculateTotalPrice(points, offersModel) {
         }
       });
     }
-
-    const pointTotal = basePrice + offersTotal;
-    return total + pointTotal;
+    return total + basePrice + offersTotal;
   }, 0);
 }
-
 
 function createTripInfoTemplate(points, destinations, offersModel) {
   const route = buildRoute(points, destinations);
   const dates = buildDates(points);
   const price = calculateTotalPrice(points, offersModel);
 
+  const safeRoute = he.encode(route);
+  const safeDates = he.encode(dates);
+  const safePrice = he.encode(String(price));
+
   return `
     <div class="trip-info">
       <div class="trip-info__main">
-        <h1 class="trip-info__title">${route}</h1>
-        <p class="trip-info__dates">${dates}</p>
+        <h1 class="trip-info__title">${safeRoute}</h1>
+        <p class="trip-info__dates">${safeDates}</p>
       </div>
       <p class="trip-info__cost">
-        Total: &euro;&nbsp;<span class="trip-info__cost-value">${price}</span>
+        Total: &euro;&nbsp;<span class="trip-info__cost-value">${safePrice}</span>
       </p>
     </div>
   `;

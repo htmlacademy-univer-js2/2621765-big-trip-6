@@ -7,27 +7,28 @@ const Method = {
   DELETE: 'DELETE',
 };
 
+const POINTS_URL = 'points';
+
 export default class PointsApiService extends ApiService {
   get points() {
-    return this._load({ url: 'points' }).then(ApiService.parseResponse);
+    return this._load({ url: POINTS_URL }).then(ApiService.parseResponse);
   }
 
   async updatePoint(point) {
     const response = await this._load({
-      url: `points/${point.id}`,
+      url: `${POINTS_URL}/${point.id}`,
       method: Method.PUT,
       body: JSON.stringify(this.#adaptToServer(point)),
       headers: new Headers({ 'Content-Type': 'application/json' }),
     });
-    const parsedResponse = await ApiService.parseResponse(response);
-    return parsedResponse;
+    return await ApiService.parseResponse(response);
   }
 
   async addPoint(point) {
     const pointWithoutId = { ...point };
     delete pointWithoutId.id;
     const response = await this._load({
-      url: 'points',
+      url: POINTS_URL,
       method: Method.POST,
       body: JSON.stringify(this.#adaptToServer(pointWithoutId)),
       headers: new Headers({ 'Content-Type': 'application/json' }),
@@ -37,19 +38,17 @@ export default class PointsApiService extends ApiService {
 
   async deletePoint(point) {
     const response = await this._load({
-      url: `points/${point.id}`,
+      url: `${POINTS_URL}/${point.id}`,
       method: Method.DELETE,
     });
-
     return response;
   }
-
 
   #adaptToServer(point) {
     const adaptedPoint = {
       ...point,
-      'date_from': point.dateFrom instanceof Date ? point.dateFrom.toISOString() : null,
-      'date_to': point.dateTo instanceof Date ? point.dateTo.toISOString() : null,
+      'date_from': point.dateFrom ? new Date(point.dateFrom).toISOString() : null,
+      'date_to': point.dateTo ? new Date(point.dateTo).toISOString() : null,
       'base_price': Number(point.basePrice),
       'is_favorite': point.isFavorite,
     };
