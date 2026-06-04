@@ -16,7 +16,7 @@ export default class OffersModel extends Observable {
       this._notify(UpdateType.INIT);
     } catch (err) {
       this.#offers = [];
-      this._notify(UpdateType.INIT);
+      throw err;
     }
   }
 

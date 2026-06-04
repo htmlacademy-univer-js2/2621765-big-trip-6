@@ -6,6 +6,11 @@ const FilterType = {
 };
 
 
+const EVENT_TYPES = [
+  'taxi', 'bus', 'train', 'flight', 'check-in',
+  'sightseeing', 'ship', 'drive', 'restaurant'
+];
+
 const FilterName = {
   [FilterType.EVERYTHING]: 'Everything',
   [FilterType.FUTURE]: 'Future',
@@ -64,5 +69,6 @@ export {
   SORT_TYPE_ENABLED,
   UpdateType,
   UserAction,
+  EVENT_TYPES
 };
 

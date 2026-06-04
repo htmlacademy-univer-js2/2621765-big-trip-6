@@ -1,53 +1,63 @@
 import he from 'he';
 import AbstractView from '../framework/view/abstract-view.js';
 
+const DATE_LOCALE = 'en-US';
+const DATE_MONTH_OPTION = 'short';
+const DATE_OPTIONS = { month: DATE_MONTH_OPTION };
+
+const ROUTE_SEPARATOR = ' — ';
+const ROUTE_ELLIPSIS = ' — ... — ';
+
+const TOTAL_PRICE_PREFIX = 'Total: &euro;&nbsp;';
+
 function buildRoute(points, destinations) {
-  if (!points.length){
+  if (!points.length) {
     return '';
   }
 
   const sortedPoints = [...points].sort((a, b) => new Date(a.dateFrom) - new Date(b.dateFrom));
   const cities = sortedPoints
     .map((point) => {
-      const destination = destinations.find((dest) => dest.id === point.destination);
+      const destination = destinations.find((item) => item.id === point.destination);
       return destination ? destination.name : '';
     })
     .filter(Boolean);
 
-  if (cities.length === 0){
+  const citiesCount = cities.length;
+  if (citiesCount === 0) {
     return '';
   }
-  if (cities.length === 1){
+  if (citiesCount === 1) {
     return cities[0];
   }
-  if (cities.length === 2){
-    return `${cities[0]} — ${cities[1]}`;
+  if (citiesCount === 2) {
+    return `${cities[0]}${ROUTE_SEPARATOR}${cities[1]}`;
   }
-  if (cities.length === 3){
-    return `${cities[0]} — ${cities[1]} — ${cities[2]}`;
+  if (citiesCount === 3) {
+    return `${cities[0]}${ROUTE_SEPARATOR}${cities[1]}${ROUTE_SEPARATOR}${cities[2]}`;
   }
-  return `${cities[0]} — ... — ${cities[cities.length - 1]}`;
+  return `${cities[0]}${ROUTE_ELLIPSIS}${cities[citiesCount - 1]}`;
 }
 
 function buildDates(points) {
-  if (!points.length){
+  if (!points.length) {
     return '';
   }
 
-  const fromDates = points.map((p) => new Date(p.dateFrom));
-  const toDates = points.map((p) => new Date(p.dateTo));
+  const fromDates = points.map((point) => new Date(point.dateFrom));
+  const toDates = points.map((point) => new Date(point.dateTo));
   const start = new Date(Math.min(...fromDates));
   const end = new Date(Math.max(...toDates));
 
   const startDay = start.getDate();
   const endDay = end.getDate();
-  const startMonth = start.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
-  const endMonth = end.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+  const startMonth = start.toLocaleDateString(DATE_LOCALE, DATE_OPTIONS).toUpperCase();
+  const endMonth = end.toLocaleDateString(DATE_LOCALE, DATE_OPTIONS).toUpperCase();
 
   if (startMonth === endMonth) {
-    return `${startDay} — ${endDay} ${startMonth}`;
+    return `${startDay}${ROUTE_SEPARATOR}${endDay} ${startMonth}`;
   }
-  return `${startDay} ${startMonth} — ${endDay} ${endMonth}`;
+  return `${startDay} ${startMonth}${ROUTE_SEPARATOR}${endDay} ${endMonth}`;
 }
 
 function calculateTotalPrice(points, offersModel) {
@@ -58,7 +68,7 @@ function calculateTotalPrice(points, offersModel) {
     const offersForType = offersModel.getOffersByType(point.type);
     if (offersForType && Array.isArray(point.offers)) {
       point.offers.forEach((offerId) => {
-        const offer = offersForType.offers.find((o) => o.id === offerId);
+        const offer = offersForType.offers.find((offerItem) => offerItem.id === offerId);
         if (offer) {
           offersTotal += Number(offer.price) || 0;
         }
@@ -78,15 +88,15 @@ function createTripInfoTemplate(points, destinations, offersModel) {
   const safePrice = he.encode(String(price));
 
   return `
-    <div class="trip-info">
+    <section class="trip-main__trip-info trip-info">
       <div class="trip-info__main">
         <h1 class="trip-info__title">${safeRoute}</h1>
         <p class="trip-info__dates">${safeDates}</p>
       </div>
       <p class="trip-info__cost">
-        Total: &euro;&nbsp;<span class="trip-info__cost-value">${safePrice}</span>
+        ${TOTAL_PRICE_PREFIX}<span class="trip-info__cost-value">${safePrice}</span>
       </p>
-    </div>
+    </section>
   `;
 }
 

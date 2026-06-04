@@ -2,6 +2,8 @@ import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
 import utc from 'dayjs/plugin/utc';
 import { FilterType } from './const.js';
+import he from 'he';
+import { EVENT_TYPES } from './const.js';
 
 dayjs.extend(duration);
 dayjs.extend(utc);
@@ -13,6 +15,57 @@ const DATE_FORMATS = {
 };
 
 const DEFAULT_DURATION = '0M';
+
+export function generateDestinationsOptions(destinations, selectedId) {
+  return destinations.map((destination) => `
+    <option value="${he.encode(destination.id)}" ${destination.id === selectedId ? 'selected' : ''}>
+      ${he.encode(destination.name)}
+    </option>
+  `).join('');
+}
+
+export function generateOffersHTML(offersList, selectedOfferIds, isDisabled) {
+  if (!offersList?.length){
+    return '';
+  }
+  return offersList.map((offer) => {
+    const isChecked = selectedOfferIds.includes(offer.id);
+    return `
+      <div class="event__offer-selector">
+        <input class="event__offer-checkbox visually-hidden"
+               id="event-offer-${offer.id}-1"
+               type="checkbox"
+               name="event-offer-${offer.id}"
+               data-offer-id="${offer.id}"
+               ${isChecked ? 'checked' : ''}
+               ${isDisabled ? 'disabled' : ''}>
+        <label class="event__offer-label" for="event-offer-${offer.id}-1">
+          <span class="event__offer-title">${he.encode(offer.title)}</span>
+          &plus;&euro;&nbsp;
+          <span class="event__offer-price">${he.encode(String(offer.price))}</span>
+        </label>
+      </div>
+    `;
+  }).join('');
+}
+
+export function generateEventTypesHTML(currentType, isDisabled) {
+  return EVENT_TYPES.map((eventType) => `
+    <div class="event__type-item">
+      <input id="event-type-${eventType}-1"
+             class="event__type-input visually-hidden"
+             type="radio"
+             name="event-type"
+             value="${eventType}"
+             ${eventType === currentType ? 'checked' : ''}
+             ${isDisabled ? 'disabled' : ''}>
+      <label class="event__type-label event__type-label--${eventType}"
+             for="event-type-${eventType}-1">
+        ${eventType}
+      </label>
+    </div>
+  `).join('');
+}
 
 const humanizePointDueDate = (dueDate) => (
   !dueDate ? '' : dayjs.utc(dueDate).format(DATE_FORMATS.DISPLAY)
