@@ -1,9 +1,10 @@
-import TripPresenter from '../presenter/trip-presenter.js';
+import '../public/css/style.css';
+import TripPresenter from './presenter/trip-presenter.js';
 import PointsModel from './model/point-model.js';
 import OffersModel from './model/offers-model.js';
 import DestinationsModel from './model/destinations-model.js';
 import FilterModel from './model/filter-model.js';
-import FilterPresenter from '../presenter/filter-presenter.js';
+import FilterPresenter from './presenter/filter-presenter.js';
 import PointsApiService from './points-api-service.js';
 import DestinationsApiService from './destinations-api-service.js';
 import OffersApiService from './offers-api-service.js';
@@ -55,6 +56,5 @@ Promise.all([
     tripPresenter.init();
   })
   .catch(() => {
-    tripPresenter.setLoading(false);
     tripPresenter.renderError();
   });

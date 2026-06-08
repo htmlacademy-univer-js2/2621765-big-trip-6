@@ -1,8 +1,8 @@
-import { render, replace } from '../src/framework/render.js';
-import FilterView from '../src/view/filter-view.js';
-import { FilterType, FilterName, UpdateType } from '../src/const.js';
+import FilterView from '../view/filter-view.js';
+import { FilterType, FilterName, UpdateType } from '../const.js';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
+import { render, replace } from '../framework/render.js';
 
 dayjs.extend(utc);
 

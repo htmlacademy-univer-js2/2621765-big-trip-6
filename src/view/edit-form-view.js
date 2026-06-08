@@ -1,5 +1,6 @@
 import he from 'he';
 import { humanizePointDueDate } from '../util.js';
+import { generateOffersHTML, generateEventTypesHTML } from '../util.js';
 import AbstractStatefulView from '../framework/view/abstract-stateful-view.js';
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.css';
@@ -17,11 +18,7 @@ const ICON_MAP = {
 };
 
 const DEFAULT_ICON = 'img/icons/transport.png';
-
-const EVENT_TYPES = [
-  'taxi', 'bus', 'train', 'flight', 'check-in',
-  'sightseeing', 'ship', 'drive', 'restaurant'
-];
+const SHAKE_ANIMATION_DURATION = 500;
 
 function getIconByType(type) {
   return ICON_MAP[type] || DEFAULT_ICON;
@@ -32,48 +29,7 @@ function createNewEditFormTemplate(point, currentTypeOffers, allDestinations, cu
   const { description, pictures } = currentDestination || {};
   const dateStart = dateFrom ? humanizePointDueDate(dateFrom) : '';
   const dateEnd = dateTo ? humanizePointDueDate(dateTo) : '';
-  const resetButtonText = isNew ? 'cancel' : 'delete';
-
-  const generateOffers = () => {
-    if (!currentTypeOffers?.offers?.length){
-      return '';
-    }
-    return currentTypeOffers.offers.map((offer) => {
-      const isChecked = selectedOfferIds.includes(offer.id);
-      return `
-        <div class="event__offer-selector">
-          <input class="event__offer-checkbox visually-hidden"
-                 id="event-offer-${offer.id}-1"
-                 type="checkbox"
-                 name="event-offer-${offer.id}"
-                 data-offer-id="${offer.id}"
-                 ${isChecked ? 'checked' : ''}
-                 ${isDisabled ? 'disabled' : ''}>
-          <label class="event__offer-label" for="event-offer-${offer.id}-1">
-            <span class="event__offer-title">${he.encode(offer.title)}</span>
-            &plus;&euro;&nbsp;
-            <span class="event__offer-price">${he.encode(String(offer.price))}</span>
-          </label>
-        </div>
-      `;
-    }).join('');
-  };
-
-  const generateEventTypes = () => EVENT_TYPES.map((eventType) => `
-    <div class="event__type-item">
-      <input id="event-type-${eventType}-1"
-             class="event__type-input visually-hidden"
-             type="radio"
-             name="event-type"
-             value="${eventType}"
-             ${eventType === type ? 'checked' : ''}
-             ${isDisabled ? 'disabled' : ''}>
-      <label class="event__type-label event__type-label--${eventType}"
-             for="event-type-${eventType}-1">
-        ${eventType}
-      </label>
-    </div>
-  `).join('');
+  const resetButtonText = isNew ? 'Cancel' : 'Delete';
 
   const generatePhotos = () => {
     if (!pictures?.length){
@@ -82,9 +38,9 @@ function createNewEditFormTemplate(point, currentTypeOffers, allDestinations, cu
     return `
       <div class="event__photos-container">
         <div class="event__photos-tape">
-          ${pictures.map((pic) => {
-    const safeSrc = he.encode(pic.src);
-    const safeAlt = pic.description ? he.encode(pic.description) : 'Event photo';
+          ${pictures.map((picture) => {
+    const safeSrc = he.encode(picture.src);
+    const safeAlt = picture.description ? he.encode(picture.description) : 'Event photo';
     return `<img class="event__photo" src="${safeSrc}" alt="${safeAlt}">`;
   }).join('')}
         </div>
@@ -92,11 +48,15 @@ function createNewEditFormTemplate(point, currentTypeOffers, allDestinations, cu
     `;
   };
 
-  const destinationsOptions = allDestinations.map((dest) => `
-    <option value="${he.encode(dest.id)}" ${dest.id === (currentDestination?.id || '') ? 'selected' : ''}>
-      ${he.encode(dest.name)}
-    </option>
-  `).join('');
+  const offersHtml = generateOffersHTML(currentTypeOffers?.offers || [], selectedOfferIds, isDisabled);
+  const typesHtml = generateEventTypesHTML(type, isDisabled);
+
+  const destinationsDatalist = `
+    <datalist id="destination-list-1">
+      ${allDestinations.map((item) => `<option value="${he.encode(item.name)}"></option>`).join('')}
+    </datalist>
+  `;
+  const currentDestinationName = currentDestination?.name ? he.encode(currentDestination.name) : '';
 
   return `
     <form class="event event--edit" action="#" method="post">
@@ -104,24 +64,24 @@ function createNewEditFormTemplate(point, currentTypeOffers, allDestinations, cu
         <div class="event__type-wrapper">
           <label class="event__type event__type-btn" for="event-type-toggle-1">
             <span class="visually-hidden">Choose event type</span>
-            <img class="event__type-icon" width="17" height="17"
-                 src="${getIconByType(type)}" alt="Event type icon">
+            <img class="event__type-icon" width="17" height="17" src="${getIconByType(type)}" alt="Event type icon">
           </label>
           <input class="event__type-toggle visually-hidden" id="event-type-toggle-1" type="checkbox">
           <div class="event__type-list">
             <fieldset class="event__type-group">
               <legend class="visually-hidden">Event type</legend>
-              ${generateEventTypes()}
+              ${typesHtml}
             </fieldset>
           </div>
         </div>
 
         <div class="event__field-group event__field-group--destination">
           <label class="event__label event__type-output" for="event-destination-1">${he.encode(type)}</label>
-          <select class="event__input event__input--destination" id="event-destination-1" name="event-destination"
-                  ${isDisabled ? 'disabled' : ''}>
-            ${destinationsOptions}
-          </select>
+          <input class="event__input event__input--destination" id="event-destination-1"
+                 type="text" name="event-destination" list="destination-list-1"
+                 value="${currentDestinationName}"
+                 placeholder="Select destination" ${isDisabled ? 'disabled' : ''}>
+          ${destinationsDatalist}
         </div>
 
         <div class="event__field-group event__field-group--time">
@@ -140,18 +100,20 @@ function createNewEditFormTemplate(point, currentTypeOffers, allDestinations, cu
                  type="number" name="event-price" value="${basePrice}" min="0">
         </div>
 
-        <button class="event__save-btn btn btn--blue" type="submit" ${isDisabled ? 'disabled' : ''}>${isSaving ? 'saving...' : 'save'}</button>
-        <button class="event__reset-btn" type="reset" ${isDisabled ? 'disabled' : ''}>${isDeleting ? 'deleting...' : resetButtonText}</button>
+        <button class="event__save-btn btn btn--blue" type="submit" ${isDisabled ? 'disabled' : ''}>${isSaving ? 'Saving...' : 'Save'}</button>
+        <button class="event__reset-btn" type="reset" ${isDisabled ? 'disabled' : ''}>${isDeleting ? 'Deleting...' : resetButtonText}</button>
+        ${!isNew ? `
         <button class="event__rollup-btn" type="button">
           <span class="visually-hidden">Open event</span>
         </button>
+        ` : ''}
       </header>
 
       <section class="event__details">
         ${currentTypeOffers?.offers?.length ? `
           <section class="event__section event__section--offers">
             <h3 class="event__section-title event__section-title--offers">Offers</h3>
-            <div class="event__available-offers">${generateOffers()}</div>
+            <div class="event__available-offers">${offersHtml}</div>
           </section>
         ` : ''}
 
@@ -187,13 +149,9 @@ export default class NewEditFormView extends AbstractStatefulView {
     this._restoreHandlers();
   }
 
-  _afterUpdateElement() {
-    this._restoreHandlers();
-  }
-
   get template() {
     const currentDestination = this.#allDestinations.find(
-      (dest) => dest.id === this._state.destination
+      (destination) => destination.id === this._state.destination
     ) || { name: '', description: '', pictures: [] };
     return createNewEditFormTemplate(
       this._state,
@@ -213,6 +171,17 @@ export default class NewEditFormView extends AbstractStatefulView {
     this.updateElement(newState);
   }
 
+  shake() {
+    this.element.style.animation = `shake ${SHAKE_ANIMATION_DURATION / 1000}s ease-in-out`;
+    setTimeout(() => {
+      this.element.style.animation = '';
+    }, SHAKE_ANIMATION_DURATION);
+  }
+
+  _afterUpdateElement() {
+    this._restoreHandlers();
+  }
+
   _restoreHandlers() {
     this.element.addEventListener('submit', this.#formSubmitHandler);
     this.element.querySelector('.event__rollup-btn')
@@ -222,7 +191,7 @@ export default class NewEditFormView extends AbstractStatefulView {
     this.element.querySelector('.event__type-group')
       ?.addEventListener('change', this.#typeListChangeHandler);
     this.element.querySelector('.event__input--destination')
-      ?.addEventListener('change', this.#destinationChangeHandler);
+      ?.addEventListener('input', this.#destinationChangeHandler);
     this.element.querySelector('.event__input--price')
       ?.addEventListener('input', this.#priceChangeHandler);
     this.element.querySelector('.event__available-offers')
@@ -240,9 +209,60 @@ export default class NewEditFormView extends AbstractStatefulView {
     this.#setDatepickerEnd();
   }
 
+  #updateDatepickersConstraints() {
+    if (this.#datepickerStart) {
+      const maxDate = this._state.dateTo ? new Date(this._state.dateTo) : null;
+      this.#datepickerStart.set('maxDate', maxDate);
+    }
+    if (this.#datepickerEnd) {
+      const minDate = this._state.dateFrom ? new Date(this._state.dateFrom) : null;
+      this.#datepickerEnd.set('minDate', minDate);
+    }
+  }
+
+  #setDatepickerStart() {
+    const startInput = this.element.querySelector('#event-start-time-1');
+    if (!startInput){
+      return;
+    }
+    const defaultDate = this._state.dateFrom ? new Date(this._state.dateFrom) : undefined;
+    this.#datepickerStart = flatpickr(startInput, {
+      dateFormat: 'd/m/y H:i',
+      enableTime: true,
+      'time_24hr': true,
+      defaultDate: defaultDate,
+      onChange: this.#dateFromChangeHandler,
+      maxDate: this._state.dateTo ? new Date(this._state.dateTo) : null,
+    });
+    if (!this._state.dateFrom) {
+      this.#datepickerStart.clear();
+      startInput.value = '';
+    }
+  }
+
+  #setDatepickerEnd() {
+    const endInput = this.element.querySelector('#event-end-time-1');
+    if (!endInput){
+      return;
+    }
+    const defaultDate = this._state.dateTo ? new Date(this._state.dateTo) : undefined;
+    this.#datepickerEnd = flatpickr(endInput, {
+      dateFormat: 'd/m/y H:i',
+      enableTime: true,
+      'time_24hr': true,
+      defaultDate: defaultDate,
+      onChange: this.#dateToChangeHandler,
+      minDate: this._state.dateFrom ? new Date(this._state.dateFrom) : null,
+    });
+    if (!this._state.dateTo) {
+      this.#datepickerEnd.clear();
+      endInput.value = '';
+    }
+  }
+
   #formSubmitHandler = (evt) => {
     evt.preventDefault();
-    const { dateFrom, dateTo, destination } = this._state;
+    const { dateFrom, dateTo, destination, basePrice } = this._state;
 
     if (!dateFrom || !dateTo) {
       this.shake();
@@ -255,7 +275,12 @@ export default class NewEditFormView extends AbstractStatefulView {
       return;
     }
 
-    const destinationExists = this.#allDestinations.some((dest) => dest.id === destination);
+    if (!basePrice || Number(basePrice) <= 0) {
+      this.shake();
+      return;
+    }
+
+    const destinationExists = this.#allDestinations.some((item) => item.id === destination);
     if (!destinationExists) {
       this.shake();
       return;
@@ -295,66 +320,6 @@ export default class NewEditFormView extends AbstractStatefulView {
     this.#updateDatepickersConstraints();
   };
 
-  #updateDatepickersConstraints() {
-    if (this.#datepickerStart) {
-      const maxDate = this._state.dateTo ? new Date(this._state.dateTo) : null;
-      this.#datepickerStart.set('maxDate', maxDate);
-    }
-    if (this.#datepickerEnd) {
-      const minDate = this._state.dateFrom ? new Date(this._state.dateFrom) : null;
-      this.#datepickerEnd.set('minDate', minDate);
-    }
-  }
-
-  #setDatepickerStart() {
-    const startInput = this.element.querySelector('#event-start-time-1');
-    if (!startInput){
-      return;
-    }
-
-    const defaultDate = this._state.dateFrom ? new Date(this._state.dateFrom) : undefined;
-    this.#datepickerStart = flatpickr(startInput, {
-      dateFormat: 'd/m/y H:i',
-      enableTime: true,
-      'time_24hr': true,
-      defaultDate: defaultDate,
-      onChange: this.#dateFromChangeHandler,
-      maxDate: this._state.dateTo ? new Date(this._state.dateTo) : null,
-    });
-    if (!this._state.dateFrom) {
-      this.#datepickerStart.clear();
-      startInput.value = '';
-    }
-  }
-
-  #setDatepickerEnd() {
-    const endInput = this.element.querySelector('#event-end-time-1');
-    if (!endInput){
-      return;
-    }
-
-    const defaultDate = this._state.dateTo ? new Date(this._state.dateTo) : undefined;
-    this.#datepickerEnd = flatpickr(endInput, {
-      dateFormat: 'd/m/y H:i',
-      enableTime: true,
-      'time_24hr': true,
-      defaultDate: defaultDate,
-      onChange: this.#dateToChangeHandler,
-      minDate: this._state.dateFrom ? new Date(this._state.dateFrom) : null,
-    });
-    if (!this._state.dateTo) {
-      this.#datepickerEnd.clear();
-      endInput.value = '';
-    }
-  }
-
-  shake() {
-    this.element.style.animation = 'shake 0.5s ease-in-out';
-    setTimeout(() => {
-      this.element.style.animation = '';
-    }, 500);
-  }
-
   #editRollUpHandler = (evt) => {
     evt.preventDefault();
     this.#handleEditRollUp(NewEditFormView.parseStateToPoint(this._state));
@@ -372,9 +337,12 @@ export default class NewEditFormView extends AbstractStatefulView {
   };
 
   #destinationChangeHandler = (evt) => {
-    const newDestinationId = evt.target.value;
-    if (newDestinationId && this.#allDestinations.some((dest) => dest.id === newDestinationId)) {
-      this.updateElement({ destination: newDestinationId });
+    const targetName = evt.target.value;
+    const matchedDestination = this.#allDestinations.find((item) => item.name === targetName);
+    if (matchedDestination) {
+      this.updateElement({ destination: matchedDestination.id });
+    } else {
+      this.updateElement({ destination: '' });
     }
   };
 
