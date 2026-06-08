@@ -102,9 +102,11 @@ function createNewEditFormTemplate(point, currentTypeOffers, allDestinations, cu
 
         <button class="event__save-btn btn btn--blue" type="submit" ${isDisabled ? 'disabled' : ''}>${isSaving ? 'Saving...' : 'Save'}</button>
         <button class="event__reset-btn" type="reset" ${isDisabled ? 'disabled' : ''}>${isDeleting ? 'Deleting...' : resetButtonText}</button>
+        ${!isNew ? `
         <button class="event__rollup-btn" type="button">
           <span class="visually-hidden">Open event</span>
         </button>
+        ` : ''}
       </header>
 
       <section class="event__details">
